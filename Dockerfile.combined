@@ -3,6 +3,7 @@
 
 FROM node:20-bookworm-slim AS frontend-builder
 WORKDIR /app/frontend
+ENV NODE_ENV=production
 ENV COMBINED_DEPLOY=1
 ENV BACKEND_URL=http://127.0.0.1:8080
 COPY frontend/package.json frontend/package-lock.json* ./
@@ -36,6 +37,7 @@ COPY scripts/railway-combined-start.sh /start.sh
 RUN chmod +x /start.sh
 
 ENV DATA_DIR=/app/data
+ENV NODE_ENV=production
 ENV COMBINED_DEPLOY=1
 ENV BACKEND_URL=http://127.0.0.1:8080
 ENV PYTHONUNBUFFERED=1

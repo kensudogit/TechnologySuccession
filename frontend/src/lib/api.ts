@@ -24,7 +24,7 @@ export function getApiBase(): string {
     configured.includes("127.0.0.1");
 
   if (typeof window !== "undefined" && isLocal) {
-    return "/api/proxy";
+    return "/backend";
   }
 
   return configured || "http://localhost:8000";

@@ -12,6 +12,8 @@ export async function GET() {
     configured: Boolean(backendUrl),
     backend_url: backendUrl,
     on_railway: onRailway,
+    combined_deploy: process.env.COMBINED_DEPLOY === "1",
+    node_env: process.env.NODE_ENV ?? null,
     hint: backendUrl
       ? null
       : onRailway
