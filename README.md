@@ -129,7 +129,16 @@ python scripts/seed_data.py
 
 1. 新規 Railway サービスを追加
 2. **Root Directory**: `frontend`
-3. 環境変数: `NEXT_PUBLIC_API_BASE_URL=https://<backend-url>`
+3. 環境変数:
+
+| 変数 | 説明 |
+|------|------|
+| `BACKEND_URL` | Backend の公開 URL（例: `https://technologysuccession-production.up.railway.app`）**必須** |
+| `NEXT_PUBLIC_API_BASE_URL` | 任意（未設定時は `/api/proxy` 経由で `BACKEND_URL` に転送） |
+
+4. Backend の `ALLOWED_ORIGINS` に Frontend の URL を追加
+
+**「Failed to fetch」が出る場合**: Frontend に `BACKEND_URL` が未設定、またはビルド時に `localhost:8000` が固定されている可能性があります。`BACKEND_URL` を設定して再デプロイしてください。
 
 ## テスト
 
