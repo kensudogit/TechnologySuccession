@@ -6,17 +6,24 @@ const port = parseInt(process.env.PORT || "3000", 10);
 const hostname = "0.0.0.0";
 const dev = process.env.NODE_ENV === "development";
 
+function internalBackendBase() {
+  const explicit = (process.env.BACKEND_URL || "").trim();
+  if (explicit) return explicit.replace(/\/$/, "");
+  const internalPort = process.env.INTERNAL_BACKEND_PORT || "18080";
+  return `http://127.0.0.1:${internalPort}`;
+}
+
 function resolveBackendBase() {
   const explicit = (process.env.BACKEND_URL || "").trim();
   if (explicit) {
     const normalized = explicit.replace(/\/$/, "");
     if (normalized.includes(".up.railway.app") && !normalized.includes(".railway.internal")) {
-      return "http://127.0.0.1:8080";
+      return internalBackendBase();
     }
     return normalized;
   }
   if (process.env.COMBINED_DEPLOY === "1") {
-    return "http://127.0.0.1:8080";
+    return internalBackendBase();
   }
   return null;
 }
@@ -54,7 +61,7 @@ async function readRequestBody(req) {
 }
 
 async function proxyToBackend(req, res, backendPath, search) {
-  const base = resolveBackendBase() || "http://127.0.0.1:8080";
+  const base = resolveBackendBase() || internalBackendBase();
   const target = `${base}${backendPath}${search || ""}`;
 
   const headers = new Headers();

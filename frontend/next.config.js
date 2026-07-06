@@ -1,4 +1,7 @@
 /** @type {import('next').NextConfig} */
+const internalBackendPort = process.env.INTERNAL_BACKEND_PORT || "18080";
+const internalBackendBase = `http://127.0.0.1:${internalBackendPort}`;
+
 const nextConfig = {
   reactStrictMode: true,
   async rewrites() {
@@ -7,15 +10,15 @@ const nextConfig = {
       return [
         {
           source: "/api/backend/:path*",
-          destination: "http://127.0.0.1:8080/:path*",
+          destination: `${internalBackendBase}/:path*`,
         },
         {
           source: "/api/proxy/:path*",
-          destination: "http://127.0.0.1:8080/:path*",
+          destination: `${internalBackendBase}/:path*`,
         },
         {
           source: "/backend/:path*",
-          destination: "http://127.0.0.1:8080/:path*",
+          destination: `${internalBackendBase}/:path*`,
         },
       ];
     }

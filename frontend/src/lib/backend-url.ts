@@ -1,7 +1,12 @@
 /** サーバー側プロキシが Backend に接続する URL を解決する */
+function internalBackendBase(): string {
+  const port = process.env.INTERNAL_BACKEND_PORT?.trim() || "18080";
+  return `http://127.0.0.1:${port}`;
+}
+
 export function resolveBackendUrl(): string | null {
   if (process.env.COMBINED_DEPLOY === "1") {
-    return "http://127.0.0.1:8080";
+    return process.env.BACKEND_URL?.trim().replace(/\/$/, "") || internalBackendBase();
   }
 
   const explicit = process.env.BACKEND_URL?.trim();
@@ -16,7 +21,7 @@ export function resolveBackendUrl(): string | null {
     }
     // Misconfigured: BACKEND_URL points at the public frontend URL
     if (normalized.includes(".up.railway.app")) {
-      return "http://127.0.0.1:8080";
+      return internalBackendBase();
     }
     return normalized;
   }
