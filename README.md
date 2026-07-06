@@ -106,9 +106,12 @@ python scripts/seed_data.py
 
 `technologysuccession-production.up.railway.app` のように **1 つの公開 URL** で運用する場合:
 
-1. Railway サービス 1 つ（**Root Directory**: 空）
-2. `railway.toml` → `Dockerfile.combined` を使用（リポジトリに設定済み）
-3. PostgreSQL プラグインをリンク
+| Root Directory | 使用 Dockerfile |
+|----------------|-----------------|
+| `frontend`（現状） | `frontend/Dockerfile.railway`（GitHub からモノレポを clone） |
+| 空（リポジトリルート） | ルート `Dockerfile` |
+
+1. PostgreSQL プラグインをリンク
 4. 環境変数:
 
 | 変数 | 説明 |

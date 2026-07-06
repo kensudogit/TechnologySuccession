@@ -1,7 +1,7 @@
 [build]
 builder = "dockerfile"
-dockerfilePath = "Dockerfile.combined"
-buildContext = ".."
+dockerfilePath = "Dockerfile.railway"
+buildContext = "."
 
 [deploy]
 healthcheckPath = "/api/backend-status"

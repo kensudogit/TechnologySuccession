@@ -1,11 +1,23 @@
-# Railway 単一サービス用（Frontend + Backend 同一 URL）
-# Root Directory 空（リポジトリルート）の場合に使用
+# Railway Root Directory=frontend 用（モノレポ全体を clone して UI+API をビルド）
+# Root Directory をリポジトリルート（空）にできる場合は ../Dockerfile.combined も利用可
+
+ARG REPO_URL=https://github.com/kensudogit/TechnologySuccession.git
+ARG REPO_REF=main
+ARG RAILWAY_GIT_COMMIT_SHA
+
+FROM alpine/git AS monorepo
+ARG REPO_URL
+ARG REPO_REF
+ARG RAILWAY_GIT_COMMIT_SHA
+RUN git clone "${REPO_URL}" /repo \
+    && cd /repo \
+    && git checkout "${RAILWAY_GIT_COMMIT_SHA:-$REPO_REF}"
 
 FROM node:20-bookworm-slim AS frontend-builder
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/package-lock.json* ./
+COPY --from=monorepo /repo/frontend/package.json /repo/frontend/package-lock.json* ./
 RUN npm install
-COPY frontend/ ./
+COPY --from=monorepo /repo/frontend/ ./
 RUN npm run build
 
 FROM python:3.11-slim
@@ -23,14 +35,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-COPY backend/requirements.txt .
+COPY --from=monorepo /repo/backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY backend/ .
-COPY data/ ./data
+COPY --from=monorepo /repo/backend/ .
+COPY --from=monorepo /repo/data ./data
+COPY --from=monorepo /repo/scripts/railway-combined-start.sh /start.sh
 COPY --from=frontend-builder /app/frontend ./frontend
 
-COPY scripts/railway-combined-start.sh /start.sh
 RUN chmod +x /start.sh
 
 ENV DATA_DIR=/app/data
