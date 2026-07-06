@@ -26,12 +26,14 @@ export function BackendStatusBanner() {
       <p className="font-medium">Backend API が未接続です</p>
       <p className="mt-2 text-sm text-amber-200/80">
         {status.hint ||
-          "Frontend の環境変数 BACKEND_URL に Backend サービスの公開 URL を設定し、再デプロイしてください。"}
+          "最新コードを再デプロイしてください。Dockerfile.combined で UI と API が同一コンテナで起動します。"}
       </p>
       {status.on_railway && (
-        <p className="mt-2 font-mono text-xs text-amber-300/70">
-          例: BACKEND_URL=https://&lt;backend-service&gt;.up.railway.app
-        </p>
+        <ul className="mt-3 list-inside list-disc space-y-1 text-xs text-amber-300/80">
+          <li>Root Directory: <code className="text-amber-200">frontend</code> のままで OK</li>
+          <li>PostgreSQL プラグインをリンクし <code className="text-amber-200">DATABASE_URL</code> を設定</li>
+          <li>再デプロイ後 <code className="text-amber-200">/api/backend-status</code> が configured: true になること</li>
+        </ul>
       )}
     </div>
   );

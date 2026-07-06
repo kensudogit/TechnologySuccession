@@ -15,7 +15,7 @@ export async function GET() {
     hint: backendUrl
       ? null
       : onRailway
-        ? "Railway Frontend の Variables に BACKEND_URL=https://<backend>.up.railway.app を設定して再デプロイしてください。"
-        : "ローカル開発では backend を port 8000 で起動するか、.env.local に BACKEND_URL を設定してください。",
+        ? "再デプロイしてください。frontend/railway.toml が Dockerfile.combined（UI+API 一体）をビルドします。BACKEND_URL の設定は不要です。"
+        : "ローカル開発では docker compose up するか、frontend/.env.local に BACKEND_URL=http://localhost:8000 を設定してください。",
   });
 }

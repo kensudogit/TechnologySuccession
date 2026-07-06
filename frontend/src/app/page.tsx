@@ -35,7 +35,7 @@ export default function DashboardPage() {
 
       {error && (
         <p className="rounded-lg border border-red-900 bg-red-950/50 p-4 text-sm text-red-300">
-          API接続エラー: {error} — Backend (http://localhost:8000) が起動しているか確認してください。
+          API接続エラー: {error}
         </p>
       )}
 
