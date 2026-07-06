@@ -3,6 +3,7 @@ import Link from "next/link";
 import "./globals.css";
 import { AuthGuard } from "@/components/AuthGuard";
 import { BackendStatusBanner } from "@/components/BackendStatusBanner";
+import { UsageGuidePanel } from "@/components/UsageGuidePanel";
 
 export const metadata: Metadata = {
   title: "TechnologySuccession RAG",
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </AuthGuard>
         </main>
+        <UsageGuidePanel />
       </body>
     </html>
   );
