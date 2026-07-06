@@ -9,10 +9,12 @@ export COMBINED_DEPLOY=1
 export BACKEND_URL=http://127.0.0.1:8080
 export NODE_ENV=production
 
-# FastAPI の起動を待つ
-for i in $(seq 1 30); do
+# FastAPI の起動を待つ（最大 60 秒）
+BACKEND_READY=0
+for i in $(seq 1 60); do
   if curl -sf http://127.0.0.1:8080/health >/dev/null 2>&1; then
     echo "Backend ready on :8080"
+    BACKEND_READY=1
     break
   fi
   if ! kill -0 "$UVICORN_PID" 2>/dev/null; then
@@ -21,6 +23,11 @@ for i in $(seq 1 30); do
   fi
   sleep 1
 done
+
+if [ "$BACKEND_READY" -ne 1 ]; then
+  echo "Backend did not become ready within 60s"
+  exit 1
+fi
 
 cd /app/frontend
 export PORT="${PORT:-3000}"
