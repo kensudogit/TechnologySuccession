@@ -42,7 +42,10 @@ async def login(body: LoginRequest):
             detail="JWT_SECRET is not configured",
         )
     if body.username != settings.auth_username or body.password != settings.auth_password:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="ユーザー名またはパスワードが正しくありません",
+        )
     token = create_access_token(body.username)
     return LoginResponse(
         access_token=token,

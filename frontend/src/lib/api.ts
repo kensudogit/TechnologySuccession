@@ -31,13 +31,20 @@ function buildHeaders(extra?: HeadersInit): HeadersInit {
   return headers;
 }
 
-async function handleResponse(res: Response) {
-  if (res.status === 401) {
+async function handleResponse(res: Response, options?: { allowUnauthorized?: boolean }) {
+  if (res.status === 401 && !options?.allowUnauthorized) {
     clearToken();
     if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
       window.location.href = "/login";
     }
-    throw new Error("認証が必要です。ログインしてください。");
+    const text = await res.text();
+    try {
+      const json = JSON.parse(text) as { detail?: string };
+      throw new Error(json.detail ?? "認証が必要です。ログインしてください。");
+    } catch (e) {
+      if (e instanceof SyntaxError) throw new Error("認証が必要です。ログインしてください。");
+      throw e;
+    }
   }
   if (!res.ok) {
     const text = await res.text();
@@ -66,7 +73,10 @@ export async function login(username: string, password: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
   });
-  return handleResponse(res) as Promise<{ access_token: string; token_type: string }>;
+  return handleResponse(res, { allowUnauthorized: true }) as Promise<{
+    access_token: string;
+    token_type: string;
+  }>;
 }
 
 export async function askQuestion(question: string, equipmentName?: string) {

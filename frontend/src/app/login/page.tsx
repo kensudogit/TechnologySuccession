@@ -51,6 +51,9 @@ export default function LoginPage() {
         <h1 className="text-2xl font-bold">ログイン</h1>
         <p className="mt-2 text-sm text-slate-400">
           Railway の JWT_SECRET で保護された API にアクセスします。
+          未設定時のデフォルトは <code className="text-slate-300">admin</code> /{" "}
+          <code className="text-slate-300">admin</code> です。ログインできない場合は
+          Railway Variables の <code className="text-slate-300">AUTH_PASSWORD</code> を確認してください。
         </p>
       </div>
 
