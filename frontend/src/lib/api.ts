@@ -49,7 +49,9 @@ async function apiFetch(url: string, init?: RequestInit, retries = 3): Promise<R
     } catch (error) {
       lastError = error;
       if (attempt === retries - 1) {
-        throw error;
+        throw error instanceof TypeError && error.message === "Failed to fetch"
+          ? new Error("Backend API に接続できません。しばらく待ってからページを再読み込みしてください。")
+          : error;
       }
     }
     await sleep(400 * (attempt + 1));
@@ -66,7 +68,7 @@ function formatApiError(status: number, detail: string): string {
   ) {
     return "Backend API に接続できません。しばらく待ってからページを再読み込みしてください。";
   }
-  if (status === 401 && detail === "Not authenticated") {
+  if (status === 401) {
     return "認証が必要です。ログインしてください。";
   }
   return detail;
@@ -75,17 +77,19 @@ function formatApiError(status: number, detail: string): string {
 async function handleResponse(res: Response, options?: { allowUnauthorized?: boolean }) {
   if (res.status === 401 && !options?.allowUnauthorized) {
     clearToken();
-    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-      window.location.href = "/login";
-    }
     const text = await res.text();
+    let detail = "認証が必要です。ログインしてください。";
     try {
       const json = JSON.parse(text) as { detail?: string };
-      throw new Error(json.detail ?? "認証が必要です。ログインしてください。");
-    } catch (e) {
-      if (e instanceof SyntaxError) throw new Error("認証が必要です。ログインしてください。");
-      throw e;
+      if (json.detail === "Not authenticated" || json.detail === "Token expired" || json.detail === "Invalid token") {
+        detail = "認証が必要です。ログインしてください。";
+      } else if (json.detail) {
+        detail = json.detail;
+      }
+    } catch {
+      // keep default detail
     }
+    throw new Error(detail);
   }
   if (!res.ok) {
     const text = await res.text();

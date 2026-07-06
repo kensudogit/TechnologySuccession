@@ -2,12 +2,23 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { getStats, listRecords, getAuthStatus } from "@/lib/api";
 import { isLoggedIn } from "@/lib/auth";
 import { RecordTable } from "@/components/RecordTable";
 import type { MaintenanceRecord } from "@/lib/records";
 
+function isAuthError(message: string): boolean {
+  return (
+    message.includes("認証が必要") ||
+    message.includes("Not authenticated") ||
+    message.includes("Token expired") ||
+    message.includes("Invalid token")
+  );
+}
+
 export default function DashboardPage() {
+  const router = useRouter();
   const [stats, setStats] = useState<{ total_records: number } | null>(null);
   const [records, setRecords] = useState<MaintenanceRecord[]>([]);
   const [error, setError] = useState("");
@@ -16,19 +27,32 @@ export default function DashboardPage() {
     async function load() {
       try {
         const auth = await getAuthStatus();
-        if (auth.auth_enabled && !isLoggedIn()) return;
+        if (auth.auth_enabled && !isLoggedIn()) {
+          router.replace("/login");
+          return;
+        }
 
-        const [statsRes, recordsRes] = await Promise.all([getStats(), listRecords()]);
+        const statsRes = await getStats();
+        const recordsRes = await listRecords();
         setStats(statsRes);
         setRecords(recordsRes.items.slice(0, 5));
         setError("");
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        setError(message.replace(/^Error:\s*/, ""));
+        const normalized = message.replace(/^Error:\s*/, "");
+        if (isAuthError(normalized)) {
+          router.replace("/login");
+          return;
+        }
+        if (normalized === "Failed to fetch" && !isLoggedIn()) {
+          router.replace("/login");
+          return;
+        }
+        setError(normalized);
       }
     }
     load();
-  }, []);
+  }, [router]);
 
   return (
     <div className="space-y-8">
@@ -47,7 +71,7 @@ export default function DashboardPage() {
               ログインページへ →
             </Link>
           )}
-          {error.includes("Backend API") && (
+          {(error.includes("Backend API") || error === "Failed to fetch") && (
             <button
               type="button"
               className="mt-2 block text-emerald-400 hover:underline"
