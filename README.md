@@ -112,13 +112,15 @@ python scripts/seed_data.py
 
 | 変数 | 説明 |
 |------|------|
-| `DATABASE_URL` | PostgreSQL 接続 URL（Railway が自動設定） |
+| `DATABASE_URL` | PostgreSQL 接続 URL（**Backend サービスに PostgreSQL プラグインを追加**すると自動設定） |
 | `OPENAI_API_KEY` | OpenAI API キー（RAG・Embedding・OCR に使用） |
 | `JWT_SECRET` | JWT 署名用シークレット（設定すると API 認証が有効化） |
 | `AUTH_USERNAME` | ログインユーザー名（デフォルト: `admin`） |
 | `AUTH_PASSWORD` | ログインパスワード（本番では必ず変更） |
-| `ALLOWED_ORIGINS` | フロント URL（例: `https://your-app.up.railway.app`） |
+| `ALLOWED_ORIGINS` | フロント URL（例: `https://your-frontend.up.railway.app`） |
 | `DATA_DIR` | `/app/data`（Dockerfile で設定済み） |
+
+**重要**: Backend サービスと PostgreSQL プラグインを **同じ Railway プロジェクト** に追加し、Backend の Variables に `DATABASE_URL` が表示されていることを確認してください。未設定だとヘルスチェックが失敗します。
 
 `JWT_SECRET` を設定すると `/chat`, `/records`, `/ingest` 等は `Authorization: Bearer <token>` が必要です。
 トークン取得: `POST /auth/login` に `{"username":"...","password":"..."}`

@@ -18,6 +18,7 @@ engine = create_async_engine(
     pool_pre_ping=True,
     pool_size=5,
     max_overflow=10,
+    connect_args=settings.database_connect_args,
 )
 
 AsyncSessionLocal = async_sessionmaker(
@@ -27,6 +28,8 @@ AsyncSessionLocal = async_sessionmaker(
     autoflush=False,
     autocommit=False,
 )
+
+db_ready = False
 
 
 class Base(DeclarativeBase):
@@ -43,13 +46,29 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             raise
 
 
+async def check_db_connection() -> bool:
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        return True
+    except Exception as exc:
+        logger.warning("DB connection check failed: %s", exc)
+        return False
+
+
 async def init_db() -> None:
     """拡張機能とテーブルを作成する。"""
+    global db_ready
     from src.db import models  # noqa: F401
 
     async with engine.begin() as conn:
-        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        try:
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        except Exception as exc:
+            logger.warning("pgvector extension unavailable: %s", exc)
+
         await conn.run_sync(Base.metadata.create_all)
+
         try:
             await conn.execute(
                 text(
@@ -59,6 +78,10 @@ async def init_db() -> None:
                     """
                 )
             )
+        except Exception as exc:
+            logger.warning("search_vector index skipped: %s", exc)
+
+        try:
             await conn.execute(
                 text(
                     """
@@ -68,5 +91,7 @@ async def init_db() -> None:
                 )
             )
         except Exception as exc:
-            logger.warning("Index creation skipped or failed: %s", exc)
+            logger.warning("embedding index skipped: %s", exc)
+
+    db_ready = True
     logger.info("Database initialized")

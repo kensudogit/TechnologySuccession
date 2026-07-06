@@ -16,5 +16,6 @@ COPY data/ ./data
 ENV DATA_DIR=/app/data
 ENV PYTHONUNBUFFERED=1
 
-EXPOSE 8000
-CMD ["sh", "-c", "uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Railway が注入する PORT を使用
+EXPOSE 8080
+CMD ["sh", "-c", "uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1"]

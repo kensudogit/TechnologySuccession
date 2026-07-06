@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,26 +20,32 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     debug: bool = False
 
-    database_url: str = (
-        "postgresql+asyncpg://postgres:postgres@localhost:5433/technology_succession"
+    database_url: str = Field(
+        default="postgresql+asyncpg://postgres:postgres@localhost:5433/technology_succession",
+        validation_alias="DATABASE_URL",
     )
-    allowed_origins: str = "http://localhost:3000"
+    allowed_origins: str = Field(default="http://localhost:3000", validation_alias="ALLOWED_ORIGINS")
 
-    # Railway: OPENAI_API_KEY
-    openai_api_key: str = ""
-    openai_embedding_model: str = "text-embedding-3-small"
-    openai_chat_model: str = "gpt-4o"
-    prompt_version: str = "v1"
+    openai_api_key: str = Field(default="", validation_alias="OPENAI_API_KEY")
+    openai_embedding_model: str = Field(
+        default="text-embedding-3-small", validation_alias="OPENAI_EMBEDDING_MODEL"
+    )
+    openai_chat_model: str = Field(default="gpt-4o", validation_alias="OPENAI_CHAT_MODEL")
+    prompt_version: str = Field(default="v1", validation_alias="PROMPT_VERSION")
 
-    # Railway: JWT_SECRET
-    jwt_secret: str = ""
+    jwt_secret: str = Field(default="", validation_alias="JWT_SECRET")
     jwt_algorithm: str = "HS256"
-    jwt_expire_hours: int = 24
-    auth_username: str = "admin"
-    auth_password: str = "admin"
+    jwt_expire_hours: int = Field(default=24, validation_alias="JWT_EXPIRE_HOURS")
+    auth_username: str = Field(default="admin", validation_alias="AUTH_USERNAME")
+    auth_password: str = Field(default="admin", validation_alias="AUTH_PASSWORD")
 
-    upload_dir: str = str(Path(__file__).parent.parent / "uploads")
-    data_dir: str = str(Path(__file__).parent.parent.parent / "data")
+    upload_dir: str = Field(
+        default=str(Path(__file__).parent.parent / "uploads"), validation_alias="UPLOAD_DIR"
+    )
+    data_dir: str = Field(
+        default=str(Path(__file__).parent.parent.parent / "data"),
+        validation_alias="DATA_DIR",
+    )
     config_dir: str = str(Path(__file__).parent.parent / "config")
 
     embedding_dimensions: int = 1536
@@ -46,12 +54,38 @@ class Settings(BaseSettings):
 
     @property
     def database_url_normalized(self) -> str:
-        """Railway 等の postgres:// を asyncpg 用に正規化。"""
+        """Railway 等の postgres:// を asyncpg 用に正規化（SSL クエリ除去）。"""
         url = self.database_url
-        for prefix in ("postgres://", "postgresql://"):
+        for prefix in (
+            "postgres://",
+            "postgresql://",
+            "postgresql+psycopg://",
+            "postgresql+psycopg2://",
+        ):
             if url.startswith(prefix):
-                return "postgresql+asyncpg://" + url[len(prefix):]
-        return url
+                url = "postgresql+asyncpg://" + url[len(prefix):]
+                break
+
+        parsed = urlparse(url)
+        query = parse_qs(parsed.query, keep_blank_values=True)
+        query.pop("ssl", None)
+        query.pop("sslmode", None)
+        clean_query = urlencode({k: v[0] for k, v in query.items()})
+        return urlunparse(parsed._replace(query=clean_query))
+
+    @property
+    def database_connect_args(self) -> dict:
+        """Railway 外部 DB 接続用 SSL・タイムアウト設定。"""
+        url = self.database_url
+        is_internal = (
+            ".railway.internal" in url
+            or "localhost" in url
+            or "127.0.0.1" in url
+        )
+        args: dict = {"timeout": 10}
+        if not is_internal:
+            args["ssl"] = "require"
+        return args
 
     @property
     def origins_list(self) -> list[str]:
