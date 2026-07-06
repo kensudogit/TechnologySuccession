@@ -3,14 +3,10 @@
 
 FROM node:20-bookworm-slim AS frontend-builder
 WORKDIR /app/frontend
-ENV NODE_ENV=production
-ENV COMBINED_DEPLOY=1
-ENV BACKEND_URL=http://127.0.0.1:8080
 ENV NEXT_PUBLIC_API_BASE_URL=/backend
-COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm install
+ENV COMBINED_DEPLOY=1
 COPY frontend/ ./
-RUN npm run build
+RUN npm ci && NODE_ENV=production npm run build
 
 FROM python:3.11-slim
 
