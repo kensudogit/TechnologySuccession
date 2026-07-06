@@ -17,6 +17,30 @@
 
 ### 1. Docker Compose（推奨）
 
+**重要**: `docker-compose.yml` はプロジェクトルートにあります。`backend` フォルダ内からは実行しないでください。
+
+```bash
+cd TechnologySuccession
+scripts\start.bat
+```
+
+または PowerShell:
+
+```powershell
+cd TechnologySuccession
+.\scripts\start.ps1
+```
+
+`docker compose build` が `0.0s (0/0)` で失敗する場合、上記スクリプトが `docker build` → `docker compose up --no-build` で起動します。
+
+手動で起動する場合:
+
+```bash
+cd TechnologySuccession
+docker build -t tech-succession-backend:latest ./backend
+docker compose up -d postgres backend --no-build
+```
+
 `docker compose build` が失敗する場合は、先に backend イメージを直接ビルドしてください:
 
 ```bash
@@ -89,9 +113,15 @@ python scripts/seed_data.py
 | 変数 | 説明 |
 |------|------|
 | `DATABASE_URL` | PostgreSQL 接続 URL（Railway が自動設定） |
-| `OPENAI_API_KEY` | OpenAI API キー（任意） |
+| `OPENAI_API_KEY` | OpenAI API キー（RAG・Embedding・OCR に使用） |
+| `JWT_SECRET` | JWT 署名用シークレット（設定すると API 認証が有効化） |
+| `AUTH_USERNAME` | ログインユーザー名（デフォルト: `admin`） |
+| `AUTH_PASSWORD` | ログインパスワード（本番では必ず変更） |
 | `ALLOWED_ORIGINS` | フロント URL（例: `https://your-app.up.railway.app`） |
 | `DATA_DIR` | `/app/data`（Dockerfile で設定済み） |
+
+`JWT_SECRET` を設定すると `/chat`, `/records`, `/ingest` 等は `Authorization: Bearer <token>` が必要です。
+トークン取得: `POST /auth/login` に `{"username":"...","password":"..."}`
 
 起動時に DB が空の場合、サンプルデータが自動投入されます。
 

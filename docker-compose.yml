@@ -16,9 +16,10 @@ services:
       retries: 5
 
   backend:
+    image: tech-succession-backend:latest
     build: ./backend
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/technology_succession
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
@@ -32,6 +33,7 @@ services:
         condition: service_healthy
 
   frontend:
+    image: tech-succession-frontend:latest
     build: ./frontend
     ports:
       - "3000:3000"

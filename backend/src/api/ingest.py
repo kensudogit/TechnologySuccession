@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
+from src.core.auth.jwt_handler import require_auth
 from src.core.ingestion.ingest_service import ingest_daily_report, ingest_excel
 from src.core.ocr.inspection_extractor import extract_structured_record
 from src.core.ingestion.ingest_service import _save_record
@@ -27,6 +28,7 @@ def _ensure_upload_dir() -> Path:
 async def upload_excel(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(require_auth),
 ):
     upload_dir = _ensure_upload_dir()
     dest = upload_dir / f"{uuid.uuid4()}_{file.filename}"
@@ -47,6 +49,7 @@ async def upload_excel(
 async def upload_daily_report(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(require_auth),
 ):
     upload_dir = _ensure_upload_dir()
     dest = upload_dir / f"{uuid.uuid4()}_{file.filename}"
@@ -66,6 +69,7 @@ async def upload_daily_report(
 async def upload_document(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(require_auth),
 ):
     upload_dir = _ensure_upload_dir()
     dest = upload_dir / f"{uuid.uuid4()}_{file.filename}"

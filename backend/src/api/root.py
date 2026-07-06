@@ -85,6 +85,10 @@ _LANDING_HTML = """<!DOCTYPE html>
         <p><a href="/records/stats">/records/stats</a></p>
       </div>
       <div class="card">
+        <h2>認証 (JWT)</h2>
+        <p><a href="/auth/status">/auth/status</a> — POST <code>/auth/login</code> でトークン取得</p>
+      </div>
+      <div class="card">
         <h2>API 一覧 (JSON)</h2>
         <p><a href="/api">/api</a></p>
       </div>

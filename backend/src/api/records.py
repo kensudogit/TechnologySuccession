@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.evaluation.runner import run_evaluation
+from src.core.auth.jwt_handler import require_auth
 from src.db.database import get_db
 from src.db.models import EvalRun, IngestJob, MaintenanceRecord
 
@@ -20,6 +21,7 @@ async def list_records(
     limit: int = 50,
     equipment_name: str | None = None,
     db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(require_auth),
 ):
     stmt = select(MaintenanceRecord).order_by(MaintenanceRecord.event_date.desc().nullslast())
     if equipment_name:
@@ -53,13 +55,20 @@ async def list_records(
 
 
 @router.get("/records/stats")
-async def record_stats(db: AsyncSession = Depends(get_db)):
+async def record_stats(
+    db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(require_auth),
+):
     total = await db.scalar(select(func.count()).select_from(MaintenanceRecord))
     return {"total_records": total or 0}
 
 
 @router.get("/records/ingest/{job_id}")
-async def get_ingest_job(job_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+async def get_ingest_job(
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(require_auth),
+):
     job = await db.get(IngestJob, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -75,7 +84,11 @@ async def get_ingest_job(job_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/records/ingest/{job_id}/report")
-async def get_ingest_report(job_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+async def get_ingest_report(
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(require_auth),
+):
     job = await db.get(IngestJob, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -89,7 +102,10 @@ async def get_ingest_report(job_id: uuid.UUID, db: AsyncSession = Depends(get_db
 
 
 @router.post("/eval/run")
-async def evaluate(db: AsyncSession = Depends(get_db)):
+async def evaluate(
+    db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(require_auth),
+):
     run = await run_evaluation(db)
     return {
         "run_id": str(run.id),
@@ -99,7 +115,11 @@ async def evaluate(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/eval/runs/{run_id}")
-async def get_eval_run(run_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+async def get_eval_run(
+    run_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(require_auth),
+):
     run = await db.get(EvalRun, run_id)
     if not run:
         raise HTTPException(status_code=404, detail="Eval run not found")

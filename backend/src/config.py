@@ -3,10 +3,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+    )
+
     app_name: str = "TechnologySuccession RAG"
     app_version: str = "0.1.0"
     debug: bool = False
@@ -16,10 +23,18 @@ class Settings(BaseSettings):
     )
     allowed_origins: str = "http://localhost:3000"
 
+    # Railway: OPENAI_API_KEY
     openai_api_key: str = ""
     openai_embedding_model: str = "text-embedding-3-small"
     openai_chat_model: str = "gpt-4o"
     prompt_version: str = "v1"
+
+    # Railway: JWT_SECRET
+    jwt_secret: str = ""
+    jwt_algorithm: str = "HS256"
+    jwt_expire_hours: int = 24
+    auth_username: str = "admin"
+    auth_password: str = "admin"
 
     upload_dir: str = str(Path(__file__).parent.parent / "uploads")
     data_dir: str = str(Path(__file__).parent.parent.parent / "data")
@@ -46,9 +61,13 @@ class Settings(BaseSettings):
     def prompts_dir(self) -> Path:
         return Path(self.config_dir) / "prompts"
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    @property
+    def auth_enabled(self) -> bool:
+        return bool(self.jwt_secret)
+
+    @property
+    def openai_configured(self) -> bool:
+        return bool(self.openai_api_key)
 
 
 settings = Settings()

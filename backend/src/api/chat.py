@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
+from src.core.auth.jwt_handler import require_auth
 from src.core.rag.pipeline import RagPipeline
 from src.db.database import get_db
 from src.db.models import ChatLog
@@ -28,6 +29,7 @@ class AskResponse(BaseModel):
 async def ask_question(
     body: AskRequest,
     db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(require_auth),
 ):
     question = body.question
     if body.equipment_name:

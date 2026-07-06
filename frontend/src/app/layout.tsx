@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
+import { AuthGuard } from "@/components/AuthGuard";
 
 export const metadata: Metadata = {
   title: "TechnologySuccession RAG",
@@ -21,10 +22,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/chat" className="hover:text-emerald-400">Chat</Link>
               <Link href="/ingest" className="hover:text-emerald-400">Ingest</Link>
               <Link href="/eval" className="hover:text-emerald-400">Eval</Link>
+              <Link href="/login" className="hover:text-emerald-400">Login</Link>
             </nav>
           </div>
         </header>
-        <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+        <main className="mx-auto max-w-6xl px-4 py-8">
+          <AuthGuard>{children}</AuthGuard>
+        </main>
       </body>
     </html>
   );
