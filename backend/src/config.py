@@ -30,6 +30,15 @@ class Settings(BaseSettings):
     rrf_top_k: int = 5
 
     @property
+    def database_url_normalized(self) -> str:
+        """Railway 等の postgres:// を asyncpg 用に正規化。"""
+        url = self.database_url
+        for prefix in ("postgres://", "postgresql://"):
+            if url.startswith(prefix):
+                return "postgresql+asyncpg://" + url[len(prefix):]
+        return url
+
+    @property
     def origins_list(self) -> list[str]:
         return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
 

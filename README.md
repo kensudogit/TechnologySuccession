@@ -75,6 +75,32 @@ python scripts/seed_data.py
 - `POST /eval/run` — 精度評価実行
 - `GET /records/stats` — 登録件数
 
+## Railway デプロイ
+
+### Backend（API）
+
+リポジトリルートの `Dockerfile` と `railway.toml` を使用します。
+
+1. Railway で GitHub リポジトリ `TechnologySuccession` を接続
+2. **Root Directory**: 空（リポジトリルート）のまま
+3. PostgreSQL プラグインを追加（pgvector 対応イメージ推奨）
+4. 環境変数を設定:
+
+| 変数 | 説明 |
+|------|------|
+| `DATABASE_URL` | PostgreSQL 接続 URL（Railway が自動設定） |
+| `OPENAI_API_KEY` | OpenAI API キー（任意） |
+| `ALLOWED_ORIGINS` | フロント URL（例: `https://your-app.up.railway.app`） |
+| `DATA_DIR` | `/app/data`（Dockerfile で設定済み） |
+
+起動時に DB が空の場合、サンプルデータが自動投入されます。
+
+### Frontend（別サービス）
+
+1. 新規 Railway サービスを追加
+2. **Root Directory**: `frontend`
+3. 環境変数: `NEXT_PUBLIC_API_BASE_URL=https://<backend-url>`
+
 ## テスト
 
 ```bash
@@ -86,10 +112,11 @@ pytest
 
 ```
 TechnologySuccession/
+├── Dockerfile        # Railway 用（backend ビルド）
+├── railway.toml      # Railway 設定
 ├── backend/          # FastAPI + RAG パイプライン
 ├── frontend/         # Next.js UI
 ├── data/samples/     # サンプルデータ
 ├── data/eval/        # 評価用 Q&A
 └── docker-compose.yml
 ```
-"# TechnologySuccession" 

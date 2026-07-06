@@ -1,0 +1,11 @@
+.git
+.gitignore
+frontend/node_modules
+frontend/.next
+backend/__pycache__
+backend/.pytest_cache
+backend/uploads
+**/*.pyc
+**/.env
+**/.env.local
+README.md
