@@ -102,9 +102,35 @@ python scripts/seed_data.py
 
 ## Railway デプロイ
 
-### Backend（API）
+### 推奨: 単一サービス（1 URL で UI + API）
 
-リポジトリルートの `Dockerfile` と `railway.toml` を使用します。
+`technologysuccession-production.up.railway.app` のように **1 つの公開 URL** で運用する場合:
+
+1. Railway サービス 1 つ（**Root Directory**: 空）
+2. `railway.toml` → `Dockerfile.combined` を使用（リポジトリに設定済み）
+3. PostgreSQL プラグインをリンク
+4. 環境変数:
+
+| 変数 | 説明 |
+|------|------|
+| `DATABASE_URL` | PostgreSQL（プラグインから自動） |
+| `OPENAI_API_KEY` | OpenAI API キー |
+| `JWT_SECRET` | JWT 署名用 |
+| `AUTH_USERNAME` / `AUTH_PASSWORD` | ログイン用 |
+| `ALLOWED_ORIGINS` | `https://technologysuccession-production.up.railway.app` |
+| `DATA_DIR` | `/app/data` |
+
+`BACKEND_URL` は **不要**（コンテナ内で `http://127.0.0.1:8080` に自動設定）。
+
+ヘルスチェック: `/api/backend-status`（`configured: true` になること）
+
+**注意**: `technologysuccession-production.up.railway.app` を `BACKEND_URL` に設定しないでください（Frontend 自身を指してループします）。
+
+### オプション: Backend / Frontend 分離（2 サービス）
+
+#### Backend（API）
+
+リポジトリルートの `Dockerfile` を使用（`Dockerfile.combined` ではない）。
 
 1. Railway で GitHub リポジトリ `TechnologySuccession` を接続
 2. **Root Directory**: 空（リポジトリルート）のまま
@@ -128,7 +154,7 @@ python scripts/seed_data.py
 
 起動時に DB が空の場合、サンプルデータが自動投入されます。
 
-### Frontend（別サービス）
+### Frontend（別サービス・2 サービス構成時のみ）
 
 1. 新規 Railway サービスを追加
 2. **Root Directory**: `frontend`

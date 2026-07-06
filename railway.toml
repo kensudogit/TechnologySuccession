@@ -1,10 +1,9 @@
 [build]
 builder = "dockerfile"
-dockerfilePath = "Dockerfile"
+dockerfilePath = "Dockerfile.combined"
 
 [deploy]
-healthcheckPath = "/health"
+healthcheckPath = "/api/backend-status"
 healthcheckTimeout = 300
-startCommand = "sh -c 'uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1'"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3

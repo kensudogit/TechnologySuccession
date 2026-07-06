@@ -1,7 +1,11 @@
 /** サーバー側プロキシが Backend に接続する URL を解決する */
 export function resolveBackendUrl(): string | null {
+  const explicit = process.env.BACKEND_URL?.trim();
+  if (explicit) {
+    return explicit.replace(/\/$/, "");
+  }
+
   const candidates = [
-    process.env.BACKEND_URL,
     process.env.RAILWAY_BACKEND_URL,
     process.env.BACKEND_INTERNAL_URL,
   ];

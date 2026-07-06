@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { resolveBackendUrl } from "@/lib/backend-url";
 
+export const dynamic = "force-dynamic";
+
 async function proxyRequest(req: NextRequest, pathSegments: string[]) {
   const base = resolveBackendUrl();
   if (!base) {

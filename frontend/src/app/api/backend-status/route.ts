@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 
 import { resolveBackendUrl } from "@/lib/backend-url";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const backendUrl = resolveBackendUrl();
   const onRailway = Boolean(process.env.RAILWAY_ENVIRONMENT);
