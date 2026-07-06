@@ -6,7 +6,13 @@ INTERNAL_BACKEND_PORT="${INTERNAL_BACKEND_PORT:-18080}"
 
 # 同一コンテナ内で FastAPI (内部) + Next.js (Railway PORT) を起動
 cd /app
-uvicorn src.main:app --host 127.0.0.1 --port "$INTERNAL_BACKEND_PORT" --workers 1 &
+(
+  while true; do
+    uvicorn src.main:app --host 127.0.0.1 --port "$INTERNAL_BACKEND_PORT" --workers 1
+    echo "uvicorn exited; restarting in 2s..."
+    sleep 2
+  done
+) &
 UVICORN_PID=$!
 
 export COMBINED_DEPLOY=1
@@ -21,7 +27,7 @@ for i in $(seq 1 45); do
     break
   fi
   if ! kill -0 "$UVICORN_PID" 2>/dev/null; then
-    echo "WARNING: uvicorn exited early; starting Next.js anyway"
+    echo "WARNING: uvicorn supervisor exited early; starting Next.js anyway"
     break
   fi
   sleep 1

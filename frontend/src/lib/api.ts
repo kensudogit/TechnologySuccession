@@ -31,6 +31,32 @@ function buildHeaders(extra?: HeadersInit): HeadersInit {
   return headers;
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function apiFetch(url: string, init?: RequestInit, retries = 3): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < retries; attempt += 1) {
+    try {
+      const res = await globalThis.fetch(url, init);
+      if (res.status !== 502 && res.status !== 503) {
+        return res;
+      }
+      if (attempt === retries - 1) {
+        return res;
+      }
+    } catch (error) {
+      lastError = error;
+      if (attempt === retries - 1) {
+        throw error;
+      }
+    }
+    await sleep(400 * (attempt + 1));
+  }
+  throw lastError instanceof Error ? lastError : new Error("API request failed");
+}
+
 function formatApiError(status: number, detail: string): string {
   if (
     status === 502 ||
@@ -39,6 +65,9 @@ function formatApiError(status: number, detail: string): string {
     detail.includes("Cannot reach backend")
   ) {
     return "Backend API に接続できません。しばらく待ってからページを再読み込みしてください。";
+  }
+  if (status === 401 && detail === "Not authenticated") {
+    return "認証が必要です。ログインしてください。";
   }
   return detail;
 }
@@ -72,7 +101,7 @@ async function handleResponse(res: Response, options?: { allowUnauthorized?: boo
 }
 
 export async function getAuthStatus() {
-  const res = await fetch(`${getApiBase()}/auth/status`);
+  const res = await apiFetch(`${getApiBase()}/auth/status`);
   return handleResponse(res) as Promise<{
     auth_enabled: boolean;
     openai_configured: boolean;
@@ -80,7 +109,7 @@ export async function getAuthStatus() {
 }
 
 export async function login(username: string, password: string) {
-  const res = await fetch(`${getApiBase()}/auth/login`, {
+  const res = await apiFetch(`${getApiBase()}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
@@ -92,7 +121,7 @@ export async function login(username: string, password: string) {
 }
 
 export async function askQuestion(question: string, equipmentName?: string) {
-  const res = await fetch(`${getApiBase()}/chat/ask`, {
+  const res = await apiFetch(`${getApiBase()}/chat/ask`, {
     method: "POST",
     headers: buildHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ question, equipment_name: equipmentName }),
@@ -101,14 +130,14 @@ export async function askQuestion(question: string, equipmentName?: string) {
 }
 
 export async function getStats() {
-  const res = await fetch(`${getApiBase()}/records/stats`, { headers: buildHeaders() });
+  const res = await apiFetch(`${getApiBase()}/records/stats`, { headers: buildHeaders() });
   return handleResponse(res);
 }
 
 export async function uploadFile(endpoint: string, file: File) {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch(`${getApiBase()}${endpoint}`, {
+  const res = await apiFetch(`${getApiBase()}${endpoint}`, {
     method: "POST",
     headers: buildHeaders(),
     body: form,
@@ -117,7 +146,7 @@ export async function uploadFile(endpoint: string, file: File) {
 }
 
 export async function runEval() {
-  const res = await fetch(`${getApiBase()}/eval/run`, {
+  const res = await apiFetch(`${getApiBase()}/eval/run`, {
     method: "POST",
     headers: buildHeaders(),
   });
@@ -126,12 +155,12 @@ export async function runEval() {
 
 export async function listRecords(equipmentName?: string) {
   const params = equipmentName ? `?equipment_name=${encodeURIComponent(equipmentName)}` : "";
-  const res = await fetch(`${getApiBase()}/records${params}`, { headers: buildHeaders() });
+  const res = await apiFetch(`${getApiBase()}/records${params}`, { headers: buildHeaders() });
   return handleResponse(res);
 }
 
 export async function seedDatabase() {
-  const res = await fetch(`${getApiBase()}/admin/seed`, {
+  const res = await apiFetch(`${getApiBase()}/admin/seed`, {
     method: "POST",
     headers: buildHeaders(),
   });
@@ -177,7 +206,7 @@ export type TestRunDetail = {
 };
 
 export async function runTests(suite: TestSuite = "unit") {
-  const res = await fetch(`${getApiBase()}/tests/run?suite=${suite}`, {
+  const res = await apiFetch(`${getApiBase()}/tests/run?suite=${suite}`, {
     method: "POST",
     headers: buildHeaders(),
   });
@@ -185,11 +214,11 @@ export async function runTests(suite: TestSuite = "unit") {
 }
 
 export async function listTestRuns() {
-  const res = await fetch(`${getApiBase()}/tests/runs`, { headers: buildHeaders() });
+  const res = await apiFetch(`${getApiBase()}/tests/runs`, { headers: buildHeaders() });
   return handleResponse(res) as Promise<{ items: TestRunDetail[] }>;
 }
 
 export async function getTestRun(runId: string) {
-  const res = await fetch(`${getApiBase()}/tests/runs/${runId}`, { headers: buildHeaders() });
+  const res = await apiFetch(`${getApiBase()}/tests/runs/${runId}`, { headers: buildHeaders() });
   return handleResponse(res) as Promise<TestRunDetail>;
 }

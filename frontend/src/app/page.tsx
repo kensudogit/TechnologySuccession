@@ -21,8 +21,10 @@ export default function DashboardPage() {
         const [statsRes, recordsRes] = await Promise.all([getStats(), listRecords()]);
         setStats(statsRes);
         setRecords(recordsRes.items.slice(0, 5));
+        setError("");
       } catch (err) {
-        setError(String(err));
+        const message = err instanceof Error ? err.message : String(err);
+        setError(message.replace(/^Error:\s*/, ""));
       }
     }
     load();
@@ -38,9 +40,23 @@ export default function DashboardPage() {
       </section>
 
       {error && (
-        <p className="rounded-lg border border-red-900 bg-red-950/50 p-4 text-sm text-red-300">
-          API接続エラー: {error}
-        </p>
+        <div className="rounded-lg border border-red-900 bg-red-950/50 p-4 text-sm text-red-300">
+          <p>API接続エラー: {error}</p>
+          {error.includes("認証が必要") && (
+            <Link href="/login" className="mt-2 inline-block text-emerald-400 hover:underline">
+              ログインページへ →
+            </Link>
+          )}
+          {error.includes("Backend API") && (
+            <button
+              type="button"
+              className="mt-2 block text-emerald-400 hover:underline"
+              onClick={() => window.location.reload()}
+            >
+              ページを再読み込み
+            </button>
+          )}
+        </div>
       )}
 
       <section className="grid gap-4 md:grid-cols-3">

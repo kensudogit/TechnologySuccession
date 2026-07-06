@@ -1,4 +1,4 @@
-const { createServer } = require("http");
+const { createServer, request: httpRequest } = require("http");
 const { parse } = require("url");
 const next = require("next");
 
@@ -60,41 +60,78 @@ async function readRequestBody(req) {
   return Buffer.concat(chunks);
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function proxyOnce(targetUrl, req, body) {
+  return new Promise((resolve, reject) => {
+    const target = new URL(targetUrl);
+    const headers = { ...req.headers };
+    delete headers.host;
+    delete headers.connection;
+    delete headers["accept-encoding"];
+
+    const options = {
+      hostname: target.hostname,
+      port: target.port,
+      path: `${target.pathname}${target.search}`,
+      method: req.method,
+      headers,
+    };
+
+    const proxyReq = httpRequest(options, (proxyRes) => {
+      resolve({
+        statusCode: proxyRes.statusCode || 502,
+        headers: proxyRes.headers,
+        body: proxyRes,
+      });
+    });
+
+    proxyReq.on("error", reject);
+    proxyReq.setTimeout(15000, () => {
+      proxyReq.destroy(new Error("Backend request timeout"));
+    });
+
+    if (body && body.length > 0) {
+      proxyReq.end(body);
+    } else {
+      proxyReq.end();
+    }
+  });
+}
+
 async function proxyToBackend(req, res, backendPath, search) {
   const base = resolveBackendBase() || internalBackendBase();
   const target = `${base}${backendPath}${search || ""}`;
+  const body =
+    req.method !== "GET" && req.method !== "HEAD" ? await readRequestBody(req) : null;
 
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(req.headers)) {
-    if (!value || key === "host") continue;
-    const lower = key.toLowerCase();
-    if (lower === "accept-encoding" || lower === "connection") continue;
-    headers.set(key, Array.isArray(value) ? value.join(", ") : value);
-  }
-
-  const init = { method: req.method, headers };
-  if (req.method !== "GET" && req.method !== "HEAD") {
-    init.body = await readRequestBody(req);
-  }
-
-  try {
-    const backendRes = await fetch(target, init);
-    res.statusCode = backendRes.status;
-    backendRes.headers.forEach((value, key) => {
-      const lower = key.toLowerCase();
-      if (lower === "transfer-encoding" || lower === "content-encoding") return;
-      res.setHeader(key, value);
-    });
-    const body = Buffer.from(await backendRes.arrayBuffer());
-    res.end(body);
-  } catch (error) {
-    res.statusCode = 502;
-    res.setHeader("content-type", "application/json");
-    res.end(
-      JSON.stringify({
-        detail: "Backend API に接続できません。しばらく待ってから再読み込みしてください。",
-      })
-    );
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const backendRes = await proxyOnce(target, req, body);
+      res.statusCode = backendRes.statusCode;
+      for (const [key, value] of Object.entries(backendRes.headers)) {
+        if (!value || key.toLowerCase() === "transfer-encoding" || key.toLowerCase() === "content-encoding") {
+          continue;
+        }
+        res.setHeader(key, value);
+      }
+      backendRes.body.pipe(res);
+      return;
+    } catch (error) {
+      if (attempt === 2) {
+        res.statusCode = 502;
+        res.setHeader("content-type", "application/json");
+        res.end(
+          JSON.stringify({
+            detail: "Backend API に接続できません。しばらく待ってから再読み込みしてください。",
+          })
+        );
+        return;
+      }
+      await sleep(300 * (attempt + 1));
+    }
   }
 }
 
