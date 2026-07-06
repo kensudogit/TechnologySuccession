@@ -8,7 +8,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api import admin, chat, ingest, records
+from src.api import admin, chat, ingest, records, root
 from src.config import settings
 from src.core.seed.seed_service import seed_if_empty
 from src.db.database import init_db
@@ -46,6 +46,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(root.router)
 app.include_router(ingest.router)
 app.include_router(chat.router)
 app.include_router(records.router)
