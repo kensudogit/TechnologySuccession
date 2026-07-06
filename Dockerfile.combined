@@ -31,7 +31,7 @@ COPY data/ ./data
 COPY --from=frontend-builder /app/frontend ./frontend
 
 COPY scripts/railway-combined-start.sh /start.sh
-RUN chmod +x /start.sh
+RUN sed -i 's/\r$//' /start.sh && chmod +x /start.sh
 
 ENV DATA_DIR=/app/data
 ENV NODE_ENV=production

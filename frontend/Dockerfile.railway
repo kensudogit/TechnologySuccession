@@ -50,7 +50,8 @@ COPY --from=monorepo /repo/data ./data
 COPY --from=monorepo /repo/scripts/railway-combined-start.sh /start.sh
 COPY --from=frontend-builder /app/frontend ./frontend
 
-RUN chmod +x /start.sh \
+RUN sed -i 's/\r$//' /start.sh \
+    && chmod +x /start.sh \
     && echo "Deployed commit: ${RAILWAY_GIT_COMMIT_SHA}" > /app/DEPLOYED_COMMIT
 
 ENV DATA_DIR=/app/data
