@@ -68,7 +68,12 @@ function formatApiError(status: number, detail: string): string {
   ) {
     return "Backend API に接続できません。しばらく待ってからページを再読み込みしてください。";
   }
-  if (status === 401) {
+  if (
+    status === 401 &&
+    (detail === "Not authenticated" ||
+      detail === "Token expired" ||
+      detail === "Invalid token")
+  ) {
     return "認証が必要です。ログインしてください。";
   }
   return detail;
@@ -112,13 +117,52 @@ export async function getAuthStatus() {
   }>;
 }
 
+export type RagFrameworkStatus = {
+  framework: string;
+  langchain: {
+    packages: Record<string, string | null>;
+    components: Record<string, string>;
+    models: { embedding: string; chat: string };
+  };
+  llamaindex: {
+    packages: Record<string, string | null>;
+    components: Record<string, string>;
+  };
+  retrieval: {
+    vector_search: boolean;
+    keyword_search: boolean;
+    fusion_mode: string;
+    top_k: number;
+    rrf_top_k: number;
+    embedding_dimensions: number;
+  };
+  openai_configured: boolean;
+  prompt_version: string;
+};
+
+export async function getRagStatus() {
+  const res = await apiFetch(`${getApiBase()}/rag/status`);
+  return handleResponse(res) as Promise<RagFrameworkStatus>;
+}
+
 export async function login(username: string, password: string) {
   const res = await apiFetch(`${getApiBase()}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
   });
-  return handleResponse(res, { allowUnauthorized: true }) as Promise<{
+  if (res.status === 401) {
+    const text = await res.text();
+    let detail = "ユーザー名またはパスワードが正しくありません";
+    try {
+      const json = JSON.parse(text) as { detail?: string };
+      if (json.detail) detail = json.detail;
+    } catch {
+      // keep default detail
+    }
+    throw new Error(detail);
+  }
+  return handleResponse(res) as Promise<{
     access_token: string;
     token_type: string;
   }>;

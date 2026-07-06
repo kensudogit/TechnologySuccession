@@ -1,7 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getTestRun, listTestRuns, runTests, type TestRunDetail, type TestSuite } from "@/lib/api";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  getAuthStatus,
+  getTestRun,
+  listTestRuns,
+  runTests,
+  type TestRunDetail,
+  type TestSuite,
+} from "@/lib/api";
+import { isLoggedIn } from "@/lib/auth";
 
 function outcomeColor(outcome: string) {
   if (outcome === "passed") return "text-emerald-400";
@@ -15,27 +25,52 @@ function statusBadge(status: string) {
   return `${base} bg-red-950 text-red-400 border border-red-800`;
 }
 
+function formatError(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err);
+  return message.replace(/^Error:\s*/, "");
+}
+
+function isAuthError(message: string): boolean {
+  return message.includes("認証が必要") || message.includes("Not authenticated");
+}
+
 export default function TestsPage() {
+  const router = useRouter();
   const [suite, setSuite] = useState<TestSuite>("unit");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<TestRunDetail | null>(null);
   const [history, setHistory] = useState<TestRunDetail[]>([]);
+  const [authRequired, setAuthRequired] = useState(false);
 
   const loadHistory = useCallback(async () => {
+    if (!isLoggedIn()) return;
     try {
       const res = await listTestRuns();
       setHistory(res.items);
     } catch {
-      // 認証前などは無視
+      // ignore
     }
   }, []);
 
   useEffect(() => {
-    loadHistory();
+    getAuthStatus()
+      .then((status) => {
+        const needsAuth = status.auth_enabled && !isLoggedIn();
+        setAuthRequired(needsAuth);
+        if (!needsAuth) {
+          loadHistory();
+        }
+      })
+      .catch(() => setAuthRequired(!isLoggedIn()));
   }, [loadHistory]);
 
   async function handleRun() {
+    if (authRequired || !isLoggedIn()) {
+      router.push("/login");
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
@@ -43,19 +78,34 @@ export default function TestsPage() {
       setResult(res);
       await loadHistory();
     } catch (err) {
-      setError(String(err));
+      const message = formatError(err);
+      if (isAuthError(message)) {
+        router.push("/login");
+        return;
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }
   }
 
   async function handleSelectRun(runId: string) {
+    if (!isLoggedIn()) {
+      router.push("/login");
+      return;
+    }
+
     setError("");
     try {
       const res = await getTestRun(runId);
       setResult(res);
     } catch (err) {
-      setError(String(err));
+      const message = formatError(err);
+      if (isAuthError(message)) {
+        router.push("/login");
+        return;
+      }
+      setError(message);
     }
   }
 
@@ -67,8 +117,18 @@ export default function TestsPage() {
         <h1 className="text-2xl font-bold">テスト実行</h1>
         <p className="mt-2 text-slate-400">
           pytest テストクラスを実行し、結果をブラウザで確認できます。
+          テストの実行にはログインが必要です。
         </p>
       </section>
+
+      {authRequired && (
+        <div className="rounded-lg border border-amber-700/50 bg-amber-950/30 p-4 text-amber-100">
+          <p>テストを実行するにはログインしてください。</p>
+          <Link href="/login" className="mt-2 inline-block text-emerald-400 hover:underline">
+            ログインページへ →
+          </Link>
+        </div>
+      )}
 
       <section className="flex flex-wrap items-end gap-4">
         <div>
@@ -85,10 +145,10 @@ export default function TestsPage() {
         </div>
         <button
           onClick={handleRun}
-          disabled={loading}
+          disabled={loading || authRequired}
           className="rounded-lg bg-emerald-600 px-6 py-2 font-medium hover:bg-emerald-500 disabled:opacity-50"
         >
-          {loading ? "実行中..." : "テストを実行"}
+          {loading ? "実行中..." : authRequired ? "ログインが必要" : "テストを実行"}
         </button>
       </section>
 

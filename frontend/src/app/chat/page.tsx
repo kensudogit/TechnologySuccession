@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { askQuestion } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { askQuestion, getRagStatus, type RagFrameworkStatus } from "@/lib/api";
 
 type Source = {
   record_id: string;
@@ -18,6 +18,13 @@ export default function ChatPage() {
   const [sources, setSources] = useState<Source[]>([]);
   const [confidence, setConfidence] = useState("");
   const [loading, setLoading] = useState(false);
+  const [ragStatus, setRagStatus] = useState<RagFrameworkStatus | null>(null);
+
+  useEffect(() => {
+    getRagStatus()
+      .then(setRagStatus)
+      .catch(() => null);
+  }, []);
 
   async function handleAsk(e: React.FormEvent) {
     e.preventDefault();
@@ -38,7 +45,31 @@ export default function ChatPage() {
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="lg:col-span-2 space-y-4">
-        <h1 className="text-2xl font-bold">トラブルシューティング Chat</h1>
+        <div>
+          <h1 className="text-2xl font-bold">トラブルシューティング Chat</h1>
+          <p className="mt-2 text-sm text-slate-400">
+            LangChain で回答生成、LlamaIndex でベクトル＋キーワードのハイブリッド検索を行います。
+          </p>
+          {ragStatus && (
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              <span className="rounded-full border border-emerald-800 bg-emerald-950 px-3 py-1 text-emerald-300">
+                LangChain: {ragStatus.langchain.components.llm}
+              </span>
+              <span className="rounded-full border border-sky-800 bg-sky-950 px-3 py-1 text-sky-300">
+                LlamaIndex: {ragStatus.llamaindex.components.fusion}
+              </span>
+              <span className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-slate-300">
+                pgvector + FTS (RRF)
+              </span>
+              {!ragStatus.openai_configured && (
+                <span className="rounded-full border border-amber-700 bg-amber-950 px-3 py-1 text-amber-300">
+                  OPENAI_API_KEY 未設定（ルールベース回答）
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
         <form onSubmit={handleAsk} className="space-y-3">
           <input
             value={equipment}
@@ -95,6 +126,18 @@ export default function ChatPage() {
             <p className="mt-2 text-slate-300">{s.excerpt}</p>
           </div>
         ))}
+
+        {ragStatus && (
+          <div className="rounded-lg border border-slate-800 bg-slate-900 p-4 text-xs text-slate-400">
+            <p className="font-medium text-slate-200">RAG 構成</p>
+            <ul className="mt-2 space-y-1">
+              <li>Embedding: {ragStatus.langchain.models.embedding}</li>
+              <li>LLM: {ragStatus.langchain.models.chat}</li>
+              <li>Top-K: {ragStatus.retrieval.top_k} / RRF: {ragStatus.retrieval.rrf_top_k}</li>
+              <li>Prompt: {ragStatus.prompt_version}</li>
+            </ul>
+          </div>
+        )}
       </aside>
     </div>
   );

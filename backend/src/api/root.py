@@ -18,6 +18,7 @@ async def api_index():
       "health": "/health",
       "endpoints": {
           "chat": "POST /chat/ask",
+          "rag_status": "GET /rag/status",
           "records": "GET /records/",
           "stats": "GET /records/stats",
           "ingest_excel": "POST /ingest/excel",

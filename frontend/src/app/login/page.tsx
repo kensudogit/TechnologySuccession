@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getAuthStatus, login } from "@/lib/api";
-import { setToken } from "@/lib/auth";
+import { clearToken, setToken } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,14 +24,20 @@ export default function LoginPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!password.trim()) {
+      setError("パスワードを入力してください。");
+      return;
+    }
     setLoading(true);
     setError("");
+    clearToken();
     try {
       const res = await login(username, password);
       setToken(res.access_token);
       router.push("/");
     } catch (err) {
-      setError(String(err));
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message.replace(/^Error:\s*/, ""));
     } finally {
       setLoading(false);
     }
