@@ -25,6 +25,8 @@ async def api_index():
           "ingest_document": "POST /ingest/document",
           "seed": "POST /admin/seed",
           "eval": "POST /eval/run",
+          "tests": "POST /tests/run",
+          "test_runs": "GET /tests/runs",
       },
   }
 

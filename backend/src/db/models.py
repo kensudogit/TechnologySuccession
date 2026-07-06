@@ -113,3 +113,15 @@ class EvalRun(Base):
     metrics: Mapped[dict] = mapped_column(JSONB, nullable=False)
     case_results: Mapped[dict] = mapped_column(JSONB, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class TestRun(Base):
+    __tablename__ = "test_runs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    suite: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    summary: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    class_results: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    duration_sec: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

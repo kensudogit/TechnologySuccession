@@ -9,7 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api import admin, auth, chat, ingest, records, root
+from src.api import admin, auth, chat, ingest, records, root, tests
 from src.config import settings
 from src.core.seed.seed_service import seed_if_empty
 from src.db.database import check_db_connection, db_ready, init_db
@@ -74,6 +74,7 @@ app.include_router(ingest.router)
 app.include_router(chat.router)
 app.include_router(records.router)
 app.include_router(admin.router)
+app.include_router(tests.router)
 
 
 @app.get("/health")

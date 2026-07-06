@@ -99,3 +99,59 @@ export async function seedDatabase() {
   });
   return handleResponse(res);
 }
+
+export type TestSuite = "unit" | "integration" | "all";
+
+export type TestCaseResult = {
+  name: string;
+  outcome: string;
+  duration: number;
+  message: string | null;
+};
+
+export type TestClassResult = {
+  module: string;
+  class_name: string;
+  tests: TestCaseResult[];
+  passed: number;
+  failed: number;
+  skipped: number;
+  total: number;
+};
+
+export type TestRunSummary = {
+  total: number;
+  passed: number;
+  failed: number;
+  skipped: number;
+  duration_sec: number;
+  exit_code: number;
+};
+
+export type TestRunDetail = {
+  run_id: string;
+  suite: TestSuite;
+  status: string;
+  summary: TestRunSummary;
+  duration_sec: number;
+  created_at: string;
+  classes?: TestClassResult[];
+};
+
+export async function runTests(suite: TestSuite = "unit") {
+  const res = await fetch(`${getApiBase()}/tests/run?suite=${suite}`, {
+    method: "POST",
+    headers: buildHeaders(),
+  });
+  return handleResponse(res) as Promise<TestRunDetail>;
+}
+
+export async function listTestRuns() {
+  const res = await fetch(`${getApiBase()}/tests/runs`, { headers: buildHeaders() });
+  return handleResponse(res) as Promise<{ items: TestRunDetail[] }>;
+}
+
+export async function getTestRun(runId: string) {
+  const res = await fetch(`${getApiBase()}/tests/runs/${runId}`, { headers: buildHeaders() });
+  return handleResponse(res) as Promise<TestRunDetail>;
+}
