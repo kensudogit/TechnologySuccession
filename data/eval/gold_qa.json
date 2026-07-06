@@ -1,0 +1,28 @@
+{
+  "cases": [
+    {
+      "id": "ts-001",
+      "question": "コンプレッサA-03の異音、過去の原因は？",
+      "expected_keywords": ["ベアリング", "異音"],
+      "category": "troubleshooting"
+    },
+    {
+      "id": "ts-002",
+      "question": "コンプレッサA-03の油温アラーム、過去の処置は？",
+      "expected_keywords": ["フィルター", "油温"],
+      "category": "troubleshooting"
+    },
+    {
+      "id": "ts-003",
+      "question": "ポンプB-12の圧力低下、原因は？",
+      "expected_keywords": ["インペラ", "圧力"],
+      "category": "troubleshooting"
+    },
+    {
+      "id": "ts-004",
+      "question": "モータC-01の過電流、過去事例は？",
+      "expected_keywords": ["ベアリング", "過電流"],
+      "category": "troubleshooting"
+    }
+  ]
+}
