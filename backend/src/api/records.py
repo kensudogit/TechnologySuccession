@@ -8,20 +8,21 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.evaluation.runner import run_evaluation
-from src.core.auth.jwt_handler import require_auth
+from src.core.auth.jwt_handler import optional_auth, require_auth
 from src.db.database import get_db
 from src.db.models import EvalRun, IngestJob, MaintenanceRecord
 
 router = APIRouter(tags=["records"])
 
 
+@router.get("/records")
 @router.get("/records/")
 async def list_records(
     skip: int = 0,
     limit: int = 50,
     equipment_name: str | None = None,
     db: AsyncSession = Depends(get_db),
-    _user: dict = Depends(require_auth),
+    _user: dict = Depends(optional_auth),
 ):
     stmt = select(MaintenanceRecord).order_by(MaintenanceRecord.event_date.desc().nullslast())
     if equipment_name:
@@ -57,7 +58,7 @@ async def list_records(
 @router.get("/records/stats")
 async def record_stats(
     db: AsyncSession = Depends(get_db),
-    _user: dict = Depends(require_auth),
+    _user: dict = Depends(optional_auth),
 ):
     total = await db.scalar(select(func.count()).select_from(MaintenanceRecord))
     return {"total_records": total or 0}

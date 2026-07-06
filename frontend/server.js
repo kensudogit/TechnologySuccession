@@ -64,13 +64,63 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function stripHopHeaders(headers) {
+  const out = { ...headers };
+  delete out.host;
+  delete out.connection;
+  delete out["accept-encoding"];
+  delete out["x-forwarded-proto"];
+  delete out["x-forwarded-host"];
+  delete out["x-forwarded-for"];
+  delete out.forwarded;
+  return out;
+}
+
+function rewriteLocationHeader(location, backendPathPrefix) {
+  if (!location) return location;
+  try {
+    const parsed = new URL(location, internalBackendBase());
+    if (
+      parsed.hostname === "127.0.0.1" ||
+      parsed.hostname === "localhost" ||
+      parsed.hostname.endsWith(".railway.internal")
+    ) {
+      return `${backendPathPrefix}${parsed.pathname}${parsed.search}`;
+    }
+  } catch {
+    // keep original
+  }
+  return location;
+}
+
+function pipeResponse(backendRes, res, backendPathPrefix) {
+  return new Promise((resolve, reject) => {
+    res.statusCode = backendRes.statusCode || 502;
+    for (const [key, value] of Object.entries(backendRes.headers)) {
+      if (!value) continue;
+      const lower = key.toLowerCase();
+      if (lower === "transfer-encoding" || lower === "content-encoding") continue;
+      if (lower === "location") {
+        const rewritten = rewriteLocationHeader(
+          Array.isArray(value) ? value[0] : value,
+          backendPathPrefix
+        );
+        res.setHeader("location", rewritten);
+        continue;
+      }
+      res.setHeader(key, value);
+    }
+    backendRes.body.pipe(res);
+    backendRes.body.on("end", resolve);
+    backendRes.body.on("error", reject);
+    res.on("error", reject);
+  });
+}
+
 function proxyOnce(targetUrl, req, body) {
   return new Promise((resolve, reject) => {
     const target = new URL(targetUrl);
-    const headers = { ...req.headers };
-    delete headers.host;
-    delete headers.connection;
-    delete headers["accept-encoding"];
+    const headers = stripHopHeaders(req.headers);
 
     const options = {
       hostname: target.hostname,
@@ -106,18 +156,16 @@ async function proxyToBackend(req, res, backendPath, search) {
   const target = `${base}${backendPath}${search || ""}`;
   const body =
     req.method !== "GET" && req.method !== "HEAD" ? await readRequestBody(req) : null;
+  const prefix = (req.url || "").includes("/api/backend")
+    ? "/api/backend"
+    : (req.url || "").includes("/api/proxy")
+      ? "/api/proxy"
+      : "/backend";
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
       const backendRes = await proxyOnce(target, req, body);
-      res.statusCode = backendRes.statusCode;
-      for (const [key, value] of Object.entries(backendRes.headers)) {
-        if (!value || key.toLowerCase() === "transfer-encoding" || key.toLowerCase() === "content-encoding") {
-          continue;
-        }
-        res.setHeader(key, value);
-      }
-      backendRes.body.pipe(res);
+      await pipeResponse(backendRes, res, prefix);
       return;
     } catch (error) {
       if (attempt === 2) {

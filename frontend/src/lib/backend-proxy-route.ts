@@ -39,6 +39,7 @@ async function proxyRequest(req: NextRequest, pathSegments: string[]) {
   const init: RequestInit = {
     method: req.method,
     headers,
+    redirect: "manual",
   };
 
   if (req.method !== "GET" && req.method !== "HEAD") {
@@ -50,6 +51,16 @@ async function proxyRequest(req: NextRequest, pathSegments: string[]) {
     const responseHeaders = new Headers();
     const resType = res.headers.get("content-type");
     if (resType) responseHeaders.set("content-type", resType);
+
+    const location = res.headers.get("location");
+    if (location && (location.includes("127.0.0.1") || location.includes("localhost"))) {
+      try {
+        const parsed = new URL(location);
+        responseHeaders.set("location", `/api/backend${parsed.pathname}${parsed.search}`);
+      } catch {
+        // ignore
+      }
+    }
 
     return new NextResponse(res.body, {
       status: res.status,

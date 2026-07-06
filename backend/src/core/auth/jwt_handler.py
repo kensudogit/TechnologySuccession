@@ -47,3 +47,21 @@ async def require_auth(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return decode_access_token(credentials.credentials)
+
+
+async def optional_auth(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+) -> dict[str, Any]:
+    """認証があれば検証する。未ログインでも閲覧系 API を許可する。"""
+    if not settings.auth_enabled:
+        return {"sub": "anonymous"}
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        return {"sub": "anonymous"}
+    try:
+        return jwt.decode(
+            credentials.credentials,
+            settings.jwt_secret,
+            algorithms=[settings.jwt_algorithm],
+        )
+    except jwt.PyJWTError:
+        return {"sub": "anonymous"}
