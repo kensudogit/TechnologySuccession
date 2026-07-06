@@ -14,7 +14,7 @@ function isBrowserOnDeployedHost(): boolean {
 export function getApiBase(): string {
   // 本番ホストでは常に同一オリジンのサーバープロキシ経由（localhost 直叩きを防止）
   if (isBrowserOnDeployedHost()) {
-    return "/api/proxy";
+    return "/backend";
   }
 
   const configured = process.env.NEXT_PUBLIC_API_BASE_URL || "";
