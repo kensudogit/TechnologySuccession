@@ -88,10 +88,13 @@ async function proxyToBackend(req, res, backendPath, search) {
     const body = Buffer.from(await backendRes.arrayBuffer());
     res.end(body);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Backend request failed";
     res.statusCode = 502;
     res.setHeader("content-type", "application/json");
-    res.end(JSON.stringify({ detail: `Cannot reach backend at ${base}: ${message}` }));
+    res.end(
+      JSON.stringify({
+        detail: "Backend API に接続できません。しばらく待ってから再読み込みしてください。",
+      })
+    );
   }
 }
 

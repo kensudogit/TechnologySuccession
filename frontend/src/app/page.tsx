@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getStats, listRecords } from "@/lib/api";
+import { getStats, listRecords, getAuthStatus } from "@/lib/api";
+import { isLoggedIn } from "@/lib/auth";
 import { RecordTable } from "@/components/RecordTable";
 import type { MaintenanceRecord } from "@/lib/records";
 
@@ -14,6 +15,9 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       try {
+        const auth = await getAuthStatus();
+        if (auth.auth_enabled && !isLoggedIn()) return;
+
         const [statsRes, recordsRes] = await Promise.all([getStats(), listRecords()]);
         setStats(statsRes);
         setRecords(recordsRes.items.slice(0, 5));

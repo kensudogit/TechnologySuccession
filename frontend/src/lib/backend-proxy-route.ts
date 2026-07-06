@@ -56,9 +56,8 @@ async function proxyRequest(req: NextRequest, pathSegments: string[]) {
       headers: responseHeaders,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Backend request failed";
     return NextResponse.json(
-      { detail: `Cannot reach backend at ${base}: ${message}` },
+      { detail: "Backend API に接続できません。しばらく待ってから再読み込みしてください。" },
       { status: 502 }
     );
   }

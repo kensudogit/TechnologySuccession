@@ -31,6 +31,18 @@ function buildHeaders(extra?: HeadersInit): HeadersInit {
   return headers;
 }
 
+function formatApiError(status: number, detail: string): string {
+  if (
+    status === 502 ||
+    detail.includes("127.0.0.1") ||
+    detail.includes("localhost") ||
+    detail.includes("Cannot reach backend")
+  ) {
+    return "Backend API に接続できません。しばらく待ってからページを再読み込みしてください。";
+  }
+  return detail;
+}
+
 async function handleResponse(res: Response, options?: { allowUnauthorized?: boolean }) {
   if (res.status === 401 && !options?.allowUnauthorized) {
     clearToken();
@@ -50,9 +62,9 @@ async function handleResponse(res: Response, options?: { allowUnauthorized?: boo
     const text = await res.text();
     try {
       const json = JSON.parse(text) as { detail?: string };
-      throw new Error(json.detail ?? text);
+      throw new Error(formatApiError(res.status, json.detail ?? text));
     } catch (e) {
-      if (e instanceof SyntaxError) throw new Error(text);
+      if (e instanceof SyntaxError) throw new Error(formatApiError(res.status, text));
       throw e;
     }
   }
