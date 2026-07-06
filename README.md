@@ -135,7 +135,7 @@ python scripts/seed_data.py
 
 | 変数 | 説明 |
 |------|------|
-| `BACKEND_URL` | Backend の公開 URL（例: `https://technologysuccession-production.up.railway.app`）**必須** |
+| `BACKEND_URL` | Backend サービスの公開 URL（**別サービス**の URL。Frontend 自身の URL ではない）**必須** |
 | `NEXT_PUBLIC_API_BASE_URL` | 任意（未設定時は `/api/proxy` 経由で `BACKEND_URL` に転送） |
 
 4. Backend の `ALLOWED_ORIGINS` に Frontend の URL を追加

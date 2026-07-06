@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 
-function backendUrl(): string {
-  return (
-    process.env.BACKEND_URL ||
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
-    "http://localhost:8000"
-  ).replace(/\/$/, "");
-}
-
 async function proxyRequest(req: NextRequest, pathSegments: string[]) {
+  const base = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (!base) {
+    return NextResponse.json(
+      {
+        detail:
+          "BACKEND_URL is not configured on the frontend service. Set it to your Railway backend public URL.",
+      },
+      { status: 503 }
+    );
+  }
+
   const path = pathSegments.join("/");
-  const target = `${backendUrl()}/${path}${req.nextUrl.search}`;
+  const target = `${base.replace(/\/$/, "")}/${path}${req.nextUrl.search}`;
 
   const headers = new Headers();
   const auth = req.headers.get("authorization");
@@ -27,15 +30,23 @@ async function proxyRequest(req: NextRequest, pathSegments: string[]) {
     init.body = await req.arrayBuffer();
   }
 
-  const res = await fetch(target, init);
-  const responseHeaders = new Headers();
-  const resType = res.headers.get("content-type");
-  if (resType) responseHeaders.set("content-type", resType);
+  try {
+    const res = await fetch(target, init);
+    const responseHeaders = new Headers();
+    const resType = res.headers.get("content-type");
+    if (resType) responseHeaders.set("content-type", resType);
 
-  return new NextResponse(res.body, {
-    status: res.status,
-    headers: responseHeaders,
-  });
+    return new NextResponse(res.body, {
+      status: res.status,
+      headers: responseHeaders,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Backend request failed";
+    return NextResponse.json(
+      { detail: `Cannot reach backend at ${base}: ${message}` },
+      { status: 502 }
+    );
+  }
 }
 
 export async function GET(
