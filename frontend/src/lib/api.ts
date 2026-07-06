@@ -1,17 +1,32 @@
 import { clearToken, getToken } from "./auth";
 
+function isBrowserOnDeployedHost(): boolean {
+  if (typeof window === "undefined") return false;
+  const host = window.location.hostname;
+  return (
+    !host.includes("localhost") &&
+    !host.includes("127.0.0.1") &&
+    (host.includes("railway.app") || host.includes("vercel.app") || host.includes("."))
+  );
+}
+
 /** ブラウザから Backend へ接続するベース URL */
 export function getApiBase(): string {
+  // 本番ホストでは常に同一オリジンのサーバープロキシ経由（localhost 直叩きを防止）
+  if (isBrowserOnDeployedHost()) {
+    return "/api/proxy";
+  }
+
   const configured = process.env.NEXT_PUBLIC_API_BASE_URL || "";
   const isLocal =
     !configured ||
     configured.includes("localhost") ||
     configured.includes("127.0.0.1");
 
-  // Railway 本番: ビルド時に localhost が入っている場合は同一オリジンのプロキシ経由
   if (typeof window !== "undefined" && isLocal) {
     return "/api/proxy";
   }
+
   return configured || "http://localhost:8000";
 }
 
@@ -34,7 +49,16 @@ async function handleResponse(res: Response) {
     }
     throw new Error("認証が必要です。ログインしてください。");
   }
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    const text = await res.text();
+    try {
+      const json = JSON.parse(text) as { detail?: string };
+      throw new Error(json.detail ?? text);
+    } catch (e) {
+      if (e instanceof SyntaxError) throw new Error(text);
+      throw e;
+    }
+  }
   return res.json();
 }
 

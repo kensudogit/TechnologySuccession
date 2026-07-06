@@ -1,21 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { NextRequest, NextResponse } from "next/server";
-
-function resolveBackendUrl(): string | null {
-  const backendUrl = process.env.BACKEND_URL?.trim();
-  if (backendUrl) return backendUrl.replace(/\/$/, "");
-
-  const publicUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "";
-  const isLocal =
-    !publicUrl ||
-    publicUrl.includes("localhost") ||
-    publicUrl.includes("127.0.0.1");
-
-  // サーバー側プロキシでは localhost を使わない（ビルド時のデフォルト値を除外）
-  if (!isLocal) return publicUrl.replace(/\/$/, "");
-  return null;
-}
+import { resolveBackendUrl } from "@/lib/backend-url";
 
 async function proxyRequest(req: NextRequest, pathSegments: string[]) {
   const base = resolveBackendUrl();
@@ -24,14 +9,15 @@ async function proxyRequest(req: NextRequest, pathSegments: string[]) {
       {
         detail:
           "BACKEND_URL is not configured on the frontend Railway service. " +
-          "Set BACKEND_URL to your backend public URL (e.g. https://<backend>.up.railway.app).",
+          "Set BACKEND_URL to your backend public URL, e.g. https://<backend>.up.railway.app " +
+          "or BACKEND_RAILWAY_SERVICE=<backend-service-name> for private networking.",
       },
       { status: 503 }
     );
   }
 
   const path = pathSegments.join("/");
-  const target = `${base.replace(/\/$/, "")}/${path}${req.nextUrl.search}`;
+  const target = `${base}/${path}${req.nextUrl.search}`;
 
   const headers = new Headers();
   const auth = req.headers.get("authorization");

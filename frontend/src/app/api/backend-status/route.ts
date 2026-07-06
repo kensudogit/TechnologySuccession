@@ -1,25 +1,19 @@
 import { NextResponse } from "next/server";
 
-function resolveBackendUrl(): string | null {
-  const backendUrl = process.env.BACKEND_URL?.trim();
-  if (backendUrl) return backendUrl.replace(/\/$/, "");
-
-  const publicUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "";
-  const isLocal =
-    !publicUrl ||
-    publicUrl.includes("localhost") ||
-    publicUrl.includes("127.0.0.1");
-  if (!isLocal) return publicUrl.replace(/\/$/, "");
-  return null;
-}
+import { resolveBackendUrl } from "@/lib/backend-url";
 
 export async function GET() {
   const backendUrl = resolveBackendUrl();
+  const onRailway = Boolean(process.env.RAILWAY_ENVIRONMENT);
+
   return NextResponse.json({
     configured: Boolean(backendUrl),
     backend_url: backendUrl,
+    on_railway: onRailway,
     hint: backendUrl
       ? null
-      : "Set BACKEND_URL on the frontend Railway service to the backend public URL.",
+      : onRailway
+        ? "Railway Frontend の Variables に BACKEND_URL=https://<backend>.up.railway.app を設定して再デプロイしてください。"
+        : "ローカル開発では backend を port 8000 で起動するか、.env.local に BACKEND_URL を設定してください。",
   });
 }

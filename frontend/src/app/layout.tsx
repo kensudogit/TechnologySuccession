@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { AuthGuard } from "@/components/AuthGuard";
+import { BackendStatusBanner } from "@/components/BackendStatusBanner";
 
 export const metadata: Metadata = {
   title: "TechnologySuccession RAG",
@@ -28,7 +29,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </header>
         <main className="mx-auto max-w-6xl px-4 py-8">
-          <AuthGuard>{children}</AuthGuard>
+          <AuthGuard>
+            <BackendStatusBanner />
+            {children}
+          </AuthGuard>
         </main>
       </body>
     </html>

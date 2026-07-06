@@ -95,9 +95,6 @@ export default function TestsPage() {
       {error && (
         <div className="rounded-lg border border-red-900/50 bg-red-950/30 p-4 text-red-300">
           <p>{error}</p>
-          <p className="mt-2 text-sm text-slate-400">
-            Railway Frontend に <code className="text-red-200">BACKEND_URL</code>（Backend の公開 URL）が未設定の可能性があります。
-          </p>
         </div>
       )}
 
