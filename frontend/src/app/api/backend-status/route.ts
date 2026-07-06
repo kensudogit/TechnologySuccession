@@ -14,6 +14,7 @@ export async function GET() {
     on_railway: onRailway,
     combined_deploy: process.env.COMBINED_DEPLOY === "1",
     node_env: process.env.NODE_ENV ?? null,
+    deployed_commit: process.env.RAILWAY_GIT_COMMIT_SHA ?? null,
     hint: backendUrl
       ? null
       : onRailway

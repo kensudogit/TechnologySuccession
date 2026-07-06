@@ -1,10 +1,11 @@
 [build]
-builder = "dockerfile"
+builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile.railway"
 buildContext = "."
 
 [deploy]
 healthcheckPath = "/api/backend-status"
 healthcheckTimeout = 300
-restartPolicyType = "on_failure"
+restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
+# Dockerfile CMD (/start.sh) を使用。npm run dev は使わない

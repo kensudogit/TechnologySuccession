@@ -6,6 +6,7 @@ WORKDIR /app/frontend
 ENV NODE_ENV=production
 ENV COMBINED_DEPLOY=1
 ENV BACKEND_URL=http://127.0.0.1:8080
+ENV NEXT_PUBLIC_API_BASE_URL=/backend
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm install
 COPY frontend/ ./

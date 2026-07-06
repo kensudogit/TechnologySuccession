@@ -1,30 +1,37 @@
 # Railway Root Directory=frontend 用（モノレポ全体を clone して UI+API をビルド）
-# Root Directory をリポジトリルート（空）にできる場合は ../Dockerfile.combined も利用可
+# Root Directory をリポジトリルート（空）にできる場合は ../Dockerfile も利用可
 
 ARG REPO_URL=https://github.com/kensudogit/TechnologySuccession.git
 ARG REPO_REF=main
-ARG RAILWAY_GIT_COMMIT_SHA
+# Railway が渡すコミット SHA（変更時に Docker キャッシュを無効化）
+ARG RAILWAY_GIT_COMMIT_SHA=main
 
 FROM alpine/git AS monorepo
 ARG REPO_URL
 ARG REPO_REF
 ARG RAILWAY_GIT_COMMIT_SHA
-RUN git clone "${REPO_URL}" /repo \
+RUN apk add --no-cache curl \
+    && echo "Railway build commit: ${RAILWAY_GIT_COMMIT_SHA}" \
+    && git clone "${REPO_URL}" /repo \
     && cd /repo \
-    && git checkout "${RAILWAY_GIT_COMMIT_SHA:-$REPO_REF}"
+    && git checkout "${RAILWAY_GIT_COMMIT_SHA}" \
+    && git log -1 --oneline
 
 FROM node:20-bookworm-slim AS frontend-builder
+ARG RAILWAY_GIT_COMMIT_SHA
 WORKDIR /app/frontend
 ENV NODE_ENV=production
 ENV COMBINED_DEPLOY=1
 ENV BACKEND_URL=http://127.0.0.1:8080
+ENV NEXT_PUBLIC_API_BASE_URL=/backend
 COPY --from=monorepo /repo/frontend/package.json /repo/frontend/package-lock.json* ./
 RUN npm install
 COPY --from=monorepo /repo/frontend/ ./
-RUN npm run build
+RUN echo "Building frontend at commit ${RAILWAY_GIT_COMMIT_SHA}" && npm run build
 
 FROM python:3.11-slim
 
+ARG RAILWAY_GIT_COMMIT_SHA=main
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -46,12 +53,15 @@ COPY --from=monorepo /repo/data ./data
 COPY --from=monorepo /repo/scripts/railway-combined-start.sh /start.sh
 COPY --from=frontend-builder /app/frontend ./frontend
 
-RUN chmod +x /start.sh
+RUN chmod +x /start.sh \
+    && echo "Deployed commit: ${RAILWAY_GIT_COMMIT_SHA}" > /app/DEPLOYED_COMMIT
 
 ENV DATA_DIR=/app/data
+ENV RAILWAY_GIT_COMMIT_SHA=${RAILWAY_GIT_COMMIT_SHA}
 ENV NODE_ENV=production
 ENV COMBINED_DEPLOY=1
 ENV BACKEND_URL=http://127.0.0.1:8080
+ENV NEXT_PUBLIC_API_BASE_URL=/backend
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE 3000

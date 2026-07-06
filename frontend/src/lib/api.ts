@@ -1,33 +1,11 @@
 import { clearToken, getToken } from "./auth";
 
-function isBrowserOnDeployedHost(): boolean {
-  if (typeof window === "undefined") return false;
-  const host = window.location.hostname;
-  return (
-    !host.includes("localhost") &&
-    !host.includes("127.0.0.1") &&
-    (host.includes("railway.app") || host.includes("vercel.app") || host.includes("."))
-  );
-}
-
-/** ブラウザから Backend へ接続するベース URL */
+/** ブラウザから Backend へ接続するベース URL（常に同一オリジンのプロキシ） */
 export function getApiBase(): string {
-  // 本番ホストでは常に同一オリジンのサーバープロキシ経由（localhost 直叩きを防止）
-  if (isBrowserOnDeployedHost()) {
+  if (typeof window !== "undefined") {
     return "/backend";
   }
-
-  const configured = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-  const isLocal =
-    !configured ||
-    configured.includes("localhost") ||
-    configured.includes("127.0.0.1");
-
-  if (typeof window !== "undefined" && isLocal) {
-    return "/backend";
-  }
-
-  return configured || "http://localhost:8000";
+  return process.env.NEXT_PUBLIC_API_BASE_URL || "/backend";
 }
 
 function buildHeaders(extra?: HeadersInit): HeadersInit {
