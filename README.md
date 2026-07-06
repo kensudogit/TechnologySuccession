@@ -178,7 +178,18 @@ BACKEND_URL=https://${{Backend.RAILWAY_PUBLIC_DOMAIN}}
 
 4. Backend の `ALLOWED_ORIGINS` に Frontend の URL を追加
 
-**「Failed to fetch」が出る場合**: Frontend に `BACKEND_URL` が未設定、またはビルド時に `localhost:8000` が固定されている可能性があります。`BACKEND_URL` を設定して再デプロイしてください。
+**「Failed to fetch」が出る場合**
+
+1. `/api/backend-status` を開き、`node_env` が `production`、`combined_deploy` が `true` か確認
+2. `buildId: development`（`next dev`）のままなら Railway 設定を修正:
+   - **Settings → Build → Builder**: `Dockerfile`（Railpack ではない）
+   - **Dockerfile path**: `Dockerfile.railway`（Root Directory が `frontend` の場合）
+   - **Start Command**: 空（`npm run dev` を削除）
+   - **Redeploy** → **Clear build cache** にチェック
+3. `BACKEND_URL` に本番 Frontend URL を設定していないか確認（削除推奨）
+4. 2 サービス構成の場合: Frontend に `BACKEND_URL` と `NEXT_PUBLIC_API_BASE_URL` を Backend の公開 URL に設定して再デプロイ
+
+**「Failed to fetch」が出る場合（旧）**: Frontend に `BACKEND_URL` が未設定、またはビルド時に `localhost:8000` が固定されている可能性があります。`BACKEND_URL` を設定して再デプロイしてください。
 
 ## テスト
 

@@ -1,11 +1,23 @@
 import { clearToken, getToken } from "./auth";
 
-/** ブラウザから Backend へ接続するベース URL（常に同一オリジンのプロキシ） */
+/** ブラウザから Backend へ接続するベース URL */
 export function getApiBase(): string {
+  const publicBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
+
   if (typeof window !== "undefined") {
+    // 分離デプロイ: 別サービスの Backend 公開 URL を直接利用
+    if (
+      publicBase.startsWith("https://") &&
+      !publicBase.includes("localhost") &&
+      !publicBase.includes("127.0.0.1")
+    ) {
+      return publicBase.replace(/\/$/, "");
+    }
+    // 一体デプロイ / プロキシ経由
     return "/backend";
   }
-  return process.env.NEXT_PUBLIC_API_BASE_URL || "/backend";
+
+  return publicBase || "/backend";
 }
 
 function buildHeaders(extra?: HeadersInit): HeadersInit {

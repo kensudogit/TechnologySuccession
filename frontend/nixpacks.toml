@@ -1,0 +1,12 @@
+# Railway が Railpack/Nixpacks を使う場合のフォールバック（本番は Dockerfile.railway 推奨）
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "NODE_ENV=production COMBINED_DEPLOY=1 BACKEND_URL=http://127.0.0.1:8080 node server.js"
