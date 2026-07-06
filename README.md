@@ -139,6 +139,14 @@ python scripts/seed_data.py
 | `BACKEND_URL` | Backend サービスの公開 URL（**別サービス**の URL。Frontend 自身の URL ではない）**必須** |
 | `NEXT_PUBLIC_API_BASE_URL` | 任意（未設定時は `/api/proxy` 経由で `BACKEND_URL` に転送） |
 
+Railway で同じプロジェクトに Backend / Frontend の 2 サービスがある場合:
+
+```
+BACKEND_URL=https://${{Backend.RAILWAY_PUBLIC_DOMAIN}}
+```
+
+（`Backend` は Backend サービス名に合わせて変更）
+
 4. Backend の `ALLOWED_ORIGINS` に Frontend の URL を追加
 
 **「Failed to fetch」が出る場合**: Frontend に `BACKEND_URL` が未設定、またはビルド時に `localhost:8000` が固定されている可能性があります。`BACKEND_URL` を設定して再デプロイしてください。

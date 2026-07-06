@@ -3,8 +3,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install
 COPY . .
-ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
-ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+# 本番 API はランタイムの BACKEND_URL 経由。ビルド時に localhost を埋め込まない
 RUN npm run build
 
 FROM node:20-alpine AS runner
