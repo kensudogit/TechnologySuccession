@@ -33,6 +33,9 @@ function shouldProxy() {
 }
 
 function backendPathFromRequest(pathname) {
+  if (pathname.startsWith("/api/backend/") || pathname === "/api/backend") {
+    return pathname.replace(/^\/api\/backend/, "") || "/";
+  }
   if (pathname.startsWith("/backend/") || pathname === "/backend") {
     return pathname.replace(/^\/backend/, "") || "/";
   }
@@ -57,6 +60,8 @@ async function proxyToBackend(req, res, backendPath, search) {
   const headers = new Headers();
   for (const [key, value] of Object.entries(req.headers)) {
     if (!value || key === "host") continue;
+    const lower = key.toLowerCase();
+    if (lower === "accept-encoding" || lower === "connection") continue;
     headers.set(key, Array.isArray(value) ? value.join(", ") : value);
   }
 
@@ -69,7 +74,8 @@ async function proxyToBackend(req, res, backendPath, search) {
     const backendRes = await fetch(target, init);
     res.statusCode = backendRes.status;
     backendRes.headers.forEach((value, key) => {
-      if (key.toLowerCase() === "transfer-encoding") return;
+      const lower = key.toLowerCase();
+      if (lower === "transfer-encoding" || lower === "content-encoding") return;
       res.setHeader(key, value);
     });
     const body = Buffer.from(await backendRes.arrayBuffer());
@@ -82,14 +88,13 @@ async function proxyToBackend(req, res, backendPath, search) {
   }
 }
 
-const app = next({ dev, hostname, port });
+const app = next({ dev, hostname });
 const handle = app.getRequestHandler();
-const proxyEnabled = shouldProxy();
 
 app.prepare().then(() => {
   createServer(async (req, res) => {
     const parsedUrl = parse(req.url, true);
-    const backendPath = proxyEnabled
+    const backendPath = shouldProxy()
       ? backendPathFromRequest(parsedUrl.pathname || "/")
       : null;
 
@@ -101,7 +106,7 @@ app.prepare().then(() => {
     await handle(req, res, parsedUrl);
   }).listen(port, hostname, () => {
     console.log(
-      `> Ready on http://${hostname}:${port} (proxy=${proxyEnabled ? resolveBackendBase() : "off"})`
+      `> Ready on http://${hostname}:${port} (proxy=${shouldProxy() ? resolveBackendBase() : "off"})`
     );
   });
 });

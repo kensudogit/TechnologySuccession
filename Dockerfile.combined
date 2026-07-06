@@ -3,7 +3,7 @@
 
 FROM node:20-bookworm-slim AS frontend-builder
 WORKDIR /app/frontend
-ENV NEXT_PUBLIC_API_BASE_URL=/backend
+ENV NEXT_PUBLIC_API_BASE_URL=/api/backend
 ENV COMBINED_DEPLOY=1
 COPY frontend/ ./
 RUN npm ci && NODE_ENV=production npm run build

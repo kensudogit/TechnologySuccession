@@ -22,7 +22,7 @@ export function BackendStatusBanner() {
       .then(setStatus)
       .catch(() => null);
 
-    fetch("/backend/health")
+    fetch("/api/backend/health")
       .then((res) => setProxyOk(res.ok))
       .catch(() => setProxyOk(false));
   }, []);
@@ -49,7 +49,7 @@ export function BackendStatusBanner() {
           <li>Builder: Dockerfile / Dockerfile path: <code className="text-amber-200">Dockerfile.railway</code></li>
           <li>Start Command は空（または <code className="text-amber-200">/start.sh</code>）— <code className="text-amber-200">npm run dev</code> 禁止</li>
           <li><code className="text-amber-200">BACKEND_URL</code> に本番 URL を設定しない</li>
-          <li>再デプロイ後 <code className="text-amber-200">/backend/health</code> が JSON を返すこと</li>
+          <li>再デプロイ後 <code className="text-amber-200">/api/backend/health</code> が JSON を返すこと</li>
           {status.node_env && (
             <li>現在: node_env={status.node_env}, combined={String(status.combined_deploy)}</li>
           )}

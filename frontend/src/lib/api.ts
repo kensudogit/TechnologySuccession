@@ -14,10 +14,10 @@ export function getApiBase(): string {
       return publicBase.replace(/\/$/, "");
     }
     // 一体デプロイ / プロキシ経由
-    return "/backend";
+    return "/api/backend";
   }
 
-  return publicBase || "/backend";
+  return publicBase || "/api/backend";
 }
 
 function buildHeaders(extra?: HeadersInit): HeadersInit {
