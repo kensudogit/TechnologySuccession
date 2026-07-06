@@ -11,9 +11,14 @@ pgvector==0.3.6
 pydantic-settings==2.6.1
 python-dotenv==1.0.1
 
-openai==1.57.0
+openai>=1.58.1,<2.0.0
 httpx==0.28.1
 PyJWT==2.10.1
+
+langchain-core==0.3.29
+langchain-openai==0.2.14
+llama-index-core==0.12.30
+llama-index-embeddings-langchain==0.3.0
 
 pandas==2.2.3
 openpyxl==3.1.5

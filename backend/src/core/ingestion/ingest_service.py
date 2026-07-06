@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.cleansing.daily_report_parser import parse_daily_report_file
 from src.core.cleansing.excel_cleaner import cleanse_excel
-from src.core.rag.chunker import build_chunk_text
+from src.core.rag.chunker import build_chunk_text, build_document
 from src.core.rag.embedder import Embedder
 from src.db.models import IngestJob, IngestStatus, MaintenanceRecord, RecordChunk, SourceType
 
@@ -65,7 +65,8 @@ async def _save_record(session: AsyncSession, data: dict[str, Any]) -> Maintenan
         {"id": str(record.id)},
     )
 
-    chunk_text = build_chunk_text(record)
+    doc = build_document(record)
+    chunk_text = doc.text
     embedder = Embedder()
     embedding = await embedder.embed_text(chunk_text)
     chunk = RecordChunk(
@@ -73,11 +74,7 @@ async def _save_record(session: AsyncSession, data: dict[str, Any]) -> Maintenan
         chunk_text=chunk_text,
         chunk_type="summary",
         embedding=embedding,
-        metadata_json={
-            "equipment_name": record.equipment_name,
-            "event_date": str(record.event_date) if record.event_date else None,
-            "source_file": record.source_file,
-        },
+        metadata_json=doc.metadata,
     )
     session.add(chunk)
     return record

@@ -1,7 +1,7 @@
 """コンテキスト構築。"""
 from __future__ import annotations
 
-from src.core.rag.retriever import RetrievedChunk
+from src.core.rag.types import RetrievedChunk
 
 
 def build_context(chunks: list[RetrievedChunk]) -> str:

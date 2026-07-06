@@ -1,14 +1,15 @@
-"""RAG 回答生成。"""
+"""LangChain による RAG 回答生成。"""
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from openai import AsyncOpenAI
+from langchain_core.output_parsers import StrOutputParser
 
 from src.config import settings
 from src.core.rag.context_builder import build_context
+from src.core.rag.langchain_client import build_rag_prompt, get_chat_llm
 from src.core.rag.prompt_manager import load_system_prompt
-from src.core.rag.retriever import RetrievedChunk
+from src.core.rag.types import RetrievedChunk
 
 
 @dataclass
@@ -74,23 +75,7 @@ async def generate_answer(query: str, chunks: list[RetrievedChunk]) -> ChatRespo
             confidence=confidence,
         )
 
-    client = AsyncOpenAI(api_key=settings.openai_api_key)
-    user_prompt = f"""## 質問
-{query}
-
-## 参照すべき保全実績
-{context}
-
-上記の実績のみを根拠に、指定フォーマットで回答してください。"""
-
-    response = await client.chat.completions.create(
-        model=settings.openai_chat_model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=0.2,
-        max_tokens=1500,
-    )
-    answer = response.choices[0].message.content or ""
+    prompt = build_rag_prompt(system_prompt)
+    chain = prompt | get_chat_llm() | StrOutputParser()
+    answer = await chain.ainvoke({"query": query, "context": context})
     return ChatResponse(answer=answer, sources=sources, confidence=confidence)

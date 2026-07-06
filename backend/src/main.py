@@ -86,4 +86,5 @@ async def health():
         "db_connected": db_ok,
         "openai_configured": settings.openai_configured,
         "auth_enabled": settings.auth_enabled,
+        "rag_framework": "langchain+llamaindex",
     }

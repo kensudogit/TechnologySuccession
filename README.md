@@ -5,6 +5,7 @@
 ## 技術スタック
 
 - **Backend**: Python 3.11, FastAPI, SQLAlchemy, pgvector
+- **RAG**: LangChain（Embedding / LLM / Prompt）+ LlamaIndex（Retriever / Document / RRF 融合）
 - **Frontend**: Next.js 14, React, TypeScript
 - **DB**: PostgreSQL 16 + pgvector
 

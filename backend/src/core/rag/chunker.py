@@ -1,5 +1,7 @@
-"""RAG チャンク生成。"""
+"""RAG チャンク生成（LlamaIndex Document）。"""
 from __future__ import annotations
+
+from llama_index.core import Document
 
 from src.db.models import MaintenanceRecord
 
@@ -30,3 +32,18 @@ def build_chunk_text(record: MaintenanceRecord) -> str:
         body_parts.append(record.raw_text)
 
     return f"{header}\n" + " / ".join(body_parts)
+
+
+def build_document(record: MaintenanceRecord) -> Document:
+    """LlamaIndex Document としてチャンクを構築する。"""
+    return Document(
+        text=build_chunk_text(record),
+        metadata={
+            "record_id": str(record.id),
+            "equipment_name": record.equipment_name,
+            "event_date": str(record.event_date) if record.event_date else None,
+            "source_file": record.source_file,
+            "chunk_type": "summary",
+        },
+        id_=str(record.id),
+    )
