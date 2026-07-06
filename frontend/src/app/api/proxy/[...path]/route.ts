@@ -55,37 +55,46 @@ async function proxyRequest(req: NextRequest, pathSegments: string[]) {
   }
 }
 
+type RouteParams = { path?: string[] };
+
+async function resolvePath(
+  params: RouteParams | Promise<RouteParams>
+): Promise<string[]> {
+  const resolved = await Promise.resolve(params);
+  return resolved.path ?? [];
+}
+
 export async function GET(
   req: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: RouteParams | Promise<RouteParams> }
 ) {
-  return proxyRequest(req, params.path);
+  return proxyRequest(req, await resolvePath(params));
 }
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: RouteParams | Promise<RouteParams> }
 ) {
-  return proxyRequest(req, params.path);
+  return proxyRequest(req, await resolvePath(params));
 }
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: RouteParams | Promise<RouteParams> }
 ) {
-  return proxyRequest(req, params.path);
+  return proxyRequest(req, await resolvePath(params));
 }
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: RouteParams | Promise<RouteParams> }
 ) {
-  return proxyRequest(req, params.path);
+  return proxyRequest(req, await resolvePath(params));
 }
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: RouteParams | Promise<RouteParams> }
 ) {
-  return proxyRequest(req, params.path);
+  return proxyRequest(req, await resolvePath(params));
 }

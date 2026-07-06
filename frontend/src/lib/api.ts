@@ -64,8 +64,10 @@ async function handleResponse(res: Response) {
 
 export async function getAuthStatus() {
   const res = await fetch(`${getApiBase()}/auth/status`);
-  if (!res.ok) throw new Error(await res.text());
-  return res.json() as Promise<{ auth_enabled: boolean; openai_configured: boolean }>;
+  return handleResponse(res) as Promise<{
+    auth_enabled: boolean;
+    openai_configured: boolean;
+  }>;
 }
 
 export async function login(username: string, password: string) {
@@ -112,7 +114,7 @@ export async function runEval() {
 
 export async function listRecords(equipmentName?: string) {
   const params = equipmentName ? `?equipment_name=${encodeURIComponent(equipmentName)}` : "";
-  const res = await fetch(`${getApiBase()}/records/${params}`, { headers: buildHeaders() });
+  const res = await fetch(`${getApiBase()}/records${params}`, { headers: buildHeaders() });
   return handleResponse(res);
 }
 

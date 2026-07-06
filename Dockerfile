@@ -3,6 +3,7 @@
 
 FROM node:20-bookworm-slim AS frontend-builder
 WORKDIR /app/frontend
+ENV BACKEND_URL=http://127.0.0.1:8080
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm install
 COPY frontend/ ./
