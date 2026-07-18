@@ -12,10 +12,12 @@ export default function LoginPage() {
   const router = useRouter();
   const passwordRef = useRef<HTMLInputElement>(null);
   const [username, setUsername] = useState(DEFAULT_USERNAME);
-  const [password, setPassword] = useState("");
+  const [password, setPassword] = useState(DEFAULT_PASSWORD);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [authEnabled, setAuthEnabled] = useState<boolean | null>(null);
+  const [configuredUsername, setConfiguredUsername] = useState(DEFAULT_USERNAME);
+  const [usingDefaultPassword, setUsingDefaultPassword] = useState(true);
 
   useEffect(() => {
     if (isLoggedIn()) {
@@ -26,6 +28,18 @@ export default function LoginPage() {
     getAuthStatus()
       .then((s) => {
         setAuthEnabled(s.auth_enabled);
+        if (s.username) {
+          setConfiguredUsername(s.username);
+          setUsername(s.username);
+        }
+        if (typeof s.using_default_password === "boolean") {
+          setUsingDefaultPassword(s.using_default_password);
+          if (s.using_default_password) {
+            setPassword(DEFAULT_PASSWORD);
+          } else {
+            setPassword("");
+          }
+        }
         if (!s.auth_enabled) router.replace("/");
       })
       .catch(() => setAuthEnabled(false));
@@ -38,7 +52,7 @@ export default function LoginPage() {
   }, [authEnabled]);
 
   function fillDefaultCredentials() {
-    setUsername(DEFAULT_USERNAME);
+    setUsername(configuredUsername || DEFAULT_USERNAME);
     setPassword(DEFAULT_PASSWORD);
     setError("");
     passwordRef.current?.focus();
@@ -55,7 +69,7 @@ export default function LoginPage() {
     setError("");
     clearToken();
     try {
-      const res = await login(username, password);
+      const res = await login(username.trim(), password.trim());
       setToken(res.access_token);
       router.push("/");
     } catch (err) {
@@ -82,10 +96,19 @@ export default function LoginPage() {
           Chat・Tests・Ingest など保護 API へアクセスするにはログインが必要です。
         </p>
         <p className="mt-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm text-slate-300">
-          初期値: <code className="text-emerald-300">admin</code> /{" "}
-          <code className="text-emerald-300">admin</code>
+          ユーザー名: <code className="text-emerald-300">{configuredUsername}</code>
           <br />
-          Railway で <code className="text-slate-200">AUTH_PASSWORD</code> を変更している場合はその値を入力してください。
+          {usingDefaultPassword ? (
+            <>
+              パスワード初期値: <code className="text-emerald-300">admin</code>
+            </>
+          ) : (
+            <>
+              Railway の <code className="text-slate-200">AUTH_PASSWORD</code> が
+              admin 以外に設定されています。ダッシュボードの値を入力するか、
+              <code className="text-slate-200">AUTH_PASSWORD=admin</code> に戻してください。
+            </>
+          )}
         </p>
       </div>
 
@@ -107,7 +130,7 @@ export default function LoginPage() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="admin（デフォルト）"
+            placeholder={usingDefaultPassword ? "admin（デフォルト）" : "AUTH_PASSWORD の値"}
             className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2"
             autoComplete="current-password"
             required
@@ -119,7 +142,7 @@ export default function LoginPage() {
           onClick={fillDefaultCredentials}
           className="w-full rounded-lg border border-slate-700 py-2 text-sm text-slate-300 hover:border-slate-500 hover:text-slate-100"
         >
-          デフォルト（admin / admin）を入力
+          デフォルト（{configuredUsername} / admin）を入力
         </button>
 
         {error && <p className="text-sm text-red-400">{error}</p>}

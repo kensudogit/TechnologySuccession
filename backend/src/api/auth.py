@@ -24,6 +24,8 @@ class LoginResponse(BaseModel):
 class AuthStatusResponse(BaseModel):
     auth_enabled: bool
     openai_configured: bool
+    username: str = "admin"
+    using_default_password: bool = True
 
 
 @router.get("/status", response_model=AuthStatusResponse)
@@ -31,6 +33,8 @@ async def auth_status():
     return AuthStatusResponse(
         auth_enabled=settings.auth_enabled,
         openai_configured=settings.openai_configured,
+        username=settings.auth_username,
+        using_default_password=settings.auth_password == "admin",
     )
 
 
@@ -41,12 +45,22 @@ async def login(body: LoginRequest):
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="JWT_SECRET is not configured",
         )
-    if body.username != settings.auth_username or body.password != settings.auth_password:
+    username = body.username.strip()
+    password = body.password.strip()
+    if username != settings.auth_username or password != settings.auth_password:
+        hint = (
+            "ユーザー名またはパスワードが正しくありません。"
+            if settings.auth_password == "admin"
+            else (
+                "ユーザー名またはパスワードが正しくありません。"
+                " Railway の AUTH_PASSWORD が admin 以外に設定されています。"
+            )
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="ユーザー名またはパスワードが正しくありません",
+            detail=hint,
         )
-    token = create_access_token(body.username)
+    token = create_access_token(username)
     return LoginResponse(
         access_token=token,
         expires_in_hours=settings.jwt_expire_hours,

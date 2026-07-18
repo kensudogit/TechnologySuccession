@@ -4,8 +4,16 @@ from __future__ import annotations
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _normalize_secret(value: object, default: str) -> str:
+    """Railway 変数の前後空白・引用符・空文字を除去してデフォルトに戻す。"""
+    if value is None:
+        return default
+    text = str(value).strip().strip('"').strip("'").strip()
+    return text or default
 
 
 class Settings(BaseSettings):
@@ -38,6 +46,23 @@ class Settings(BaseSettings):
     jwt_expire_hours: int = Field(default=24, validation_alias="JWT_EXPIRE_HOURS")
     auth_username: str = Field(default="admin", validation_alias="AUTH_USERNAME")
     auth_password: str = Field(default="admin", validation_alias="AUTH_PASSWORD")
+
+    @field_validator("jwt_secret", mode="before")
+    @classmethod
+    def normalize_jwt_secret(cls, value: object) -> str:
+        if value is None:
+            return ""
+        return str(value).strip().strip('"').strip("'").strip()
+
+    @field_validator("auth_username", mode="before")
+    @classmethod
+    def normalize_auth_username(cls, value: object) -> str:
+        return _normalize_secret(value, "admin")
+
+    @field_validator("auth_password", mode="before")
+    @classmethod
+    def normalize_auth_password(cls, value: object) -> str:
+        return _normalize_secret(value, "admin")
 
     upload_dir: str = Field(
         default=str(Path(__file__).parent.parent / "uploads"), validation_alias="UPLOAD_DIR"

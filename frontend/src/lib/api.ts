@@ -117,6 +117,8 @@ export async function getAuthStatus() {
   return handleResponse(res) as Promise<{
     auth_enabled: boolean;
     openai_configured: boolean;
+    username?: string;
+    using_default_password?: boolean;
   }>;
 }
 

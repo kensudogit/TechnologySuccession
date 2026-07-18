@@ -63,6 +63,9 @@ ENV INTERNAL_BACKEND_PORT=18080
 ENV BACKEND_URL=http://127.0.0.1:18080
 ENV NEXT_PUBLIC_API_BASE_URL=/api/backend
 ENV PYTHONUNBUFFERED=1
+# Railway Variables 未設定時のフォールバック（Variables があればそちらが優先）
+ENV AUTH_USERNAME=admin
+ENV AUTH_PASSWORD=admin
 
 EXPOSE 3000
 CMD ["/start.sh"]
