@@ -1,0 +1,73 @@
+{
+  "metrics": {
+    "total_cases": 4,
+    "equipment_extraction_rate": 1.0,
+    "symptom_extraction_rate": 1.0,
+    "retrieval_hit_at_1": 1.0,
+    "retrieval_hit_at_3": 1.0,
+    "keyword_coverage_avg": 1.0,
+    "gold_has_expected_record_ids": false
+  },
+  "cases": [
+    {
+      "case_id": "ts-001",
+      "question": "コンプレッサA-03の異音、過去の原因は？",
+      "intent": "troubleshooting",
+      "equipment_ok": true,
+      "symptom_ok": true,
+      "retrieval_hit_at_1": true,
+      "retrieval_hit_at_3": true,
+      "keyword_coverage": 1.0,
+      "top_record_id": "seed-comp-noise",
+      "notes": ""
+    },
+    {
+      "case_id": "ts-002",
+      "question": "コンプレッサA-03の油温アラーム、過去の処置は？",
+      "intent": "troubleshooting",
+      "equipment_ok": true,
+      "symptom_ok": true,
+      "retrieval_hit_at_1": true,
+      "retrieval_hit_at_3": true,
+      "keyword_coverage": 1.0,
+      "top_record_id": "seed-comp-oil",
+      "notes": ""
+    },
+    {
+      "case_id": "ts-003",
+      "question": "ポンプB-12の圧力低下、原因は？",
+      "intent": "troubleshooting",
+      "equipment_ok": true,
+      "symptom_ok": true,
+      "retrieval_hit_at_1": true,
+      "retrieval_hit_at_3": true,
+      "keyword_coverage": 1.0,
+      "top_record_id": "seed-pump-pressure",
+      "notes": ""
+    },
+    {
+      "case_id": "ts-004",
+      "question": "モータC-01の過電流、過去事例は？",
+      "intent": "troubleshooting",
+      "equipment_ok": true,
+      "symptom_ok": true,
+      "retrieval_hit_at_1": true,
+      "retrieval_hit_at_3": true,
+      "keyword_coverage": 1.0,
+      "top_record_id": "seed-motor-overcurrent",
+      "notes": ""
+    }
+  ],
+  "architecture": {
+    "hybrid_retrieval": 4,
+    "query_understanding": 4,
+    "reranking": 4,
+    "chunking_strategy": 4,
+    "prompting": 3,
+    "evaluation_harness": 2,
+    "observability": 3,
+    "latency_ops": 3
+  },
+  "architecture_max": 5,
+  "architecture_avg": 3.375
+}

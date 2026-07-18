@@ -33,7 +33,7 @@ const architectureFeatured: FeaturedBlock = {
     "FastAPI :18080 — RAG · 取り込み · 認証 · テスト実行",
     "PostgreSQL + pgvector — 保全実績 · チャンク Embedding · FTS",
     "LangChain — OpenAIEmbeddings · ChatOpenAI · Prompt チェーン",
-    "LlamaIndex — Document · Vector/Keyword Retriever · QueryFusion (RRF)",
+    "LlamaIndex — Document · Vector/Keyword Retriever · RRF + 再ランク",
     "/api/backend-status — デプロイ診断 · /health — 生存確認",
   ],
 };
@@ -42,12 +42,12 @@ const ragFeatured: FeaturedBlock = {
   badge: "RAG",
   title: "LangChain + LlamaIndex ハイブリッド検索",
   body:
-    "質問文を Embedding 化し pgvector で類似チャンクを検索。PostgreSQL FTS と RRF で融合した結果を LangChain で GPT-4o 回答に変換します。",
+    "クエリ書き換え後に pgvector / キーワード検索し、RRF 融合と設備・症状ブーストで再ランク。関連度順コンテキストを LangChain GPT-4o で回答します。",
   variant: "rag",
   items: [
     "取り込み時 — チャンク生成（LlamaIndex Document）→ Embedding 保存",
     "ベクトル検索 — MaintenanceVectorRetriever（コサイン類似度）",
-    "キーワード検索 — MaintenanceKeywordRetriever（FTS + ILIKE）",
+    "キーワード検索 — 日本語 ILIKE OR + 設備ブースト",
     "融合 — QueryFusionRetriever（reciprocal_rerank）",
     "生成 — LangChain prompt | ChatOpenAI | StrOutputParser",
     "GET /api/backend/rag/status — フレームワーク構成の確認",
