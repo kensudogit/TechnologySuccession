@@ -95,14 +95,12 @@ const ingestFeatured: FeaturedBlock = {
     "Excel・日報テキスト・PDF をアップロードすると、クレンジング → DB 保存 → Embedding 生成まで自動実行されます。",
   variant: "ingest",
   items: [
-    "サンプル — /ingest から Excel・日報・PDF をダウンロード可能",
-    "Excel — POST /ingest/excel（設備名・症状・処置等を正規化）",
-    "日報 — POST /ingest/daily-report（テキスト解析）",
-    "PDF/画像 — POST /ingest/document（PyMuPDF 抽出）",
-    "チャンク — summary + フィールド単位（症状/原因/処置）+ 長文分割",
-    "Embedding — バッチ生成（OpenAI text-embedding-3-small）",
+    "かんたん登録 — /ingest の「サンプルを PostgreSQL に登録して一覧へ」",
+    "一覧表示 — 登録後は /records に PostgreSQL の内容を表示",
+    "手動 — Excel・日報・PDF をダウンロードして各カードへアップロード",
+    "API — POST /admin/seed（要ログイン）",
+    "チャンク — summary + フィールド単位 + Embedding を自動生成",
     "重複排除 — content_hash で同一レコードをスキップ",
-    "要ログイン — Ingest / Chat / Tests / Eval は認証必須",
   ],
 };
 

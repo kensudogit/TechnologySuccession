@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getStats, listRecords, getAuthStatus } from "@/lib/api";
+import { getStats, listRecords, getAuthStatus, seedDatabase } from "@/lib/api";
 import { isLoggedIn } from "@/lib/auth";
 import { RecordTable } from "@/components/RecordTable";
 import type { MaintenanceRecord } from "@/lib/records";
@@ -22,6 +22,16 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<{ total_records: number } | null>(null);
   const [records, setRecords] = useState<MaintenanceRecord[]>([]);
   const [error, setError] = useState("");
+  const [seeding, setSeeding] = useState(false);
+  const [seedMessage, setSeedMessage] = useState("");
+
+  async function loadDashboard() {
+    const statsRes = await getStats();
+    const recordsRes = await listRecords();
+    setStats(statsRes);
+    setRecords(recordsRes.items.slice(0, 5));
+    setError("");
+  }
 
   useEffect(() => {
     async function load() {
@@ -31,12 +41,7 @@ export default function DashboardPage() {
           router.replace("/login");
           return;
         }
-
-        const statsRes = await getStats();
-        const recordsRes = await listRecords();
-        setStats(statsRes);
-        setRecords(recordsRes.items.slice(0, 5));
-        setError("");
+        await loadDashboard();
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         const normalized = message.replace(/^Error:\s*/, "");
@@ -53,6 +58,21 @@ export default function DashboardPage() {
     }
     load();
   }, [router]);
+
+  async function handleSeed() {
+    setSeeding(true);
+    setSeedMessage("");
+    setError("");
+    try {
+      const res = await seedDatabase();
+      setSeedMessage(`PostgreSQL に登録しました（合計 ${res.total_records} 件）`);
+      await loadDashboard();
+    } catch (err) {
+      setError(String(err).replace(/^Error:\s*/, ""));
+    } finally {
+      setSeeding(false);
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -107,13 +127,30 @@ export default function DashboardPage() {
       </section>
 
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-semibold">最近の保全実績</h2>
-          <Link href="/records" className="text-sm text-emerald-400 hover:underline">
-            すべて見る →
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleSeed}
+              disabled={seeding}
+              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium hover:bg-emerald-500 disabled:opacity-50"
+            >
+              {seeding ? "登録中..." : "サンプルを PostgreSQL に登録"}
+            </button>
+            <Link href="/records" className="text-sm text-emerald-400 hover:underline">
+              すべて見る →
+            </Link>
+          </div>
         </div>
-        <RecordTable records={records} compact />
+        {seedMessage && <p className="text-sm text-emerald-400">{seedMessage}</p>}
+        {records.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/50 p-6 text-center text-sm text-slate-400">
+            まだデータがありません。「サンプルを PostgreSQL に登録」を押すと一覧に表示されます。
+          </div>
+        ) : (
+          <RecordTable records={records} compact />
+        )}
       </section>
 
       <section className="rounded-xl border border-slate-800 bg-slate-900 p-6">

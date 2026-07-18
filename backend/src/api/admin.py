@@ -16,6 +16,6 @@ async def seed_database(
     db: AsyncSession = Depends(get_db),
     _user: dict = Depends(require_auth),
 ):
-    """PostgreSQL にテストデータを投入する。"""
+    """サンプル保全実績を PostgreSQL に登録する（画面の一覧に反映）。"""
     result = await seed_test_data(db)
     return {"status": "ok", **result}
