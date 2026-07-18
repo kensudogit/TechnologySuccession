@@ -79,6 +79,20 @@ pip install -r requirements.txt
 python scripts/seed_data.py
 ```
 
+取り込み画面用の静的サンプル（Excel / 日報 / PDF）:
+
+```bash
+python scripts/generate_sample_data.py
+# 出力: data/samples/
+# フロントから配布: frontend/public/samples/
+```
+
+| ファイル | 用途 |
+|----------|------|
+| `maintenance_records_sample.xlsx` | Excel 保全実績（12件） |
+| `daily_report_sample.txt` | 日報テキスト（8件） |
+| `maintenance_manual_sample.pdf` | 標準対応マニュアル抜粋 |
+
 ### 3. アクセス
 
 - Frontend: http://localhost:3000

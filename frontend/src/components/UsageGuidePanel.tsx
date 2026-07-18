@@ -95,6 +95,7 @@ const ingestFeatured: FeaturedBlock = {
     "Excel・日報テキスト・PDF をアップロードすると、クレンジング → DB 保存 → Embedding 生成まで自動実行されます。",
   variant: "ingest",
   items: [
+    "サンプル — /ingest から Excel・日報・PDF をダウンロード可能",
     "Excel — POST /ingest/excel（設備名・症状・処置等を正規化）",
     "日報 — POST /ingest/daily-report（テキスト解析）",
     "PDF/画像 — POST /ingest/document（PyMuPDF 抽出）",

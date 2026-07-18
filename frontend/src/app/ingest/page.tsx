@@ -11,6 +11,27 @@ type UploadResult = {
   report?: { issues?: unknown[] };
 };
 
+const SAMPLE_FILES = [
+  {
+    label: "Excel 保全実績（12件）",
+    href: "/samples/maintenance_records_sample.xlsx",
+    filename: "maintenance_records_sample.xlsx",
+    hint: "点検日・設備名・異常・原因・処置など",
+  },
+  {
+    label: "日報テキスト（8件）",
+    href: "/samples/daily_report_sample.txt",
+    filename: "daily_report_sample.txt",
+    hint: "日付 / 設備 / 異常 / 処置ブロック",
+  },
+  {
+    label: "保全マニュアル PDF",
+    href: "/samples/maintenance_manual_sample.pdf",
+    filename: "maintenance_manual_sample.pdf",
+    hint: "異音・圧力低下・過電流の標準対応",
+  },
+] as const;
+
 export default function IngestPage() {
   const [result, setResult] = useState<UploadResult | null>(null);
   const [error, setError] = useState("");
@@ -23,7 +44,7 @@ export default function IngestPage() {
       const res = await uploadFile(endpoint, file);
       setResult(res);
     } catch (err) {
-      setError(String(err));
+      setError(String(err).replace(/^Error:\s*/, ""));
     } finally {
       setLoading(false);
     }
@@ -31,8 +52,39 @@ export default function IngestPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">データ取り込み</h1>
-      <p className="text-slate-400">Excel / 日報 / PDF をアップロードして DB 化します。</p>
+      <div>
+        <h1 className="text-2xl font-bold">データ取り込み</h1>
+        <p className="mt-2 text-slate-400">
+          Excel / 日報 / PDF をアップロードして DB 化します。まずは下のサンプルをダウンロードして試せます。
+        </p>
+      </div>
+
+      <section className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+        <h2 className="font-semibold text-emerald-400">サンプルデータ</h2>
+        <p className="mt-1 text-sm text-slate-400">
+          ダウンロード後、下の各カードへアップロードしてください（要ログイン）。
+        </p>
+        <ul className="mt-4 space-y-3">
+          {SAMPLE_FILES.map((sample) => (
+            <li
+              key={sample.href}
+              className="flex flex-col gap-1 rounded-lg border border-slate-800 bg-slate-950/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div>
+                <p className="font-medium text-slate-200">{sample.label}</p>
+                <p className="text-xs text-slate-500">{sample.hint}</p>
+              </div>
+              <a
+                href={sample.href}
+                download={sample.filename}
+                className="text-sm text-emerald-400 hover:underline"
+              >
+                ダウンロード
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <div className="grid gap-4 md:grid-cols-3">
         {[
