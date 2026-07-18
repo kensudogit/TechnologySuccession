@@ -124,6 +124,7 @@ async def evaluate(
         "run_id": str(run.id),
         "prompt_version": run.prompt_version,
         "metrics": run.metrics,
+        "case_results": run.case_results,
     }
 
 

@@ -3,24 +3,32 @@
     {
       "id": "ts-001",
       "question": "コンプレッサA-03の異音、過去の原因は？",
+      "expected_equipment": "コンプレッサA-03",
+      "expected_match_terms": ["異音", "ベアリング"],
       "expected_keywords": ["ベアリング", "異音"],
       "category": "troubleshooting"
     },
     {
       "id": "ts-002",
       "question": "コンプレッサA-03の油温アラーム、過去の処置は？",
+      "expected_equipment": "コンプレッサA-03",
+      "expected_match_terms": ["油温", "フィルター"],
       "expected_keywords": ["フィルター", "油温"],
       "category": "troubleshooting"
     },
     {
       "id": "ts-003",
       "question": "ポンプB-12の圧力低下、原因は？",
+      "expected_equipment": "ポンプB-12",
+      "expected_match_terms": ["圧力", "インペラ"],
       "expected_keywords": ["インペラ", "圧力"],
       "category": "troubleshooting"
     },
     {
       "id": "ts-004",
       "question": "モータC-01の過電流、過去事例は？",
+      "expected_equipment": "モータC-01",
+      "expected_match_terms": ["過電流", "ベアリング"],
       "expected_keywords": ["ベアリング", "過電流"],
       "category": "troubleshooting"
     }

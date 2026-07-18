@@ -60,15 +60,15 @@ const evalFeatured: FeaturedBlock = {
   badge: "Eval",
   title: "RAG 精度評価（/eval）",
   body:
-    "ゴールド Q&A（data/eval/gold_qa.json）に対して Retrieval / 引用 / キーワードカバレッジを計測します。要ログイン。",
+    "ゴールド Q&A に対し、検索ヒット率・引用一致率・キーワード含有率を計測します。画面上に各指標の意味と改善ヒントを表示します。",
   variant: "eval",
   items: [
-    "評価実行 — POST /eval/run（数分かかることがあります）",
-    "主な指標 — retrieval_hit_at_3/5 · citation_accuracy · keyword_coverage_avg",
-    "ゴールド例 —「コンプレッサA-03の異音、過去の原因は？」",
-    "注意 — expected_record_ids 未設定時は Hit@k / citation が実質無効",
-    "マルチチャンク反映 — 改善後は再シード / 再取り込みを推奨",
-    "オフライン評価 — backend/scripts/offline_rag_eval.py（DB/OpenAI 不要）",
+    "検索ヒット率（上位3/5件）— 正解実績を上位に出せたか（高いほど良い）",
+    "引用一致率 — 回答根拠が正解実績と一致したか",
+    "キーワード含有率 — 回答に期待語（ベアリング等）が入ったか",
+    "正解解決 — 設備名 + match_terms で DB から動的に正解レコードを特定",
+    "評価実行 — POST /eval/run（数十秒〜数分）",
+    "オフライン評価 — backend/scripts/offline_rag_eval.py",
   ],
 };
 
@@ -224,12 +224,13 @@ const guideSections: readonly GuideSection[] = [
       },
       {
         title: "Eval（/eval）",
-        body: "ゴールド Q&A セットで RAG 精度を評価します。要ログイン。",
+        body: "ゴールド Q&A セットで RAG 精度を評価します。各カードに指標の意味と改善ヒントがあります。要ログイン。",
         items: [
           "評価実行 — 「評価を実行」→ POST /eval/run",
-          "結果 — retrieval_hit_at_3/5 · citation · keyword_coverage_avg",
-          "データ — data/eval/gold_qa.json（4 ケース）",
-          "改善後 — 再シードしてマルチチャンクを反映してから評価",
+          "検索ヒット率 — 正解実績が上位に入った割合（目標 80%+）",
+          "キーワード含有率 — 回答に期待語が入った割合",
+          "ケース別表 — 質問ごとの ○× を確認",
+          "データ — data/eval/gold_qa.json（設備名+match_terms で正解解決）",
         ],
       },
       {
@@ -255,8 +256,8 @@ const guideSections: readonly GuideSection[] = [
           "② データ確認 — /records にサンプル実績があること",
           "③ 空または旧チャンクのみ — 管理 seed または /ingest で再投入",
           "④ /eval —「評価を実行」をクリック",
-          "⑤ 指標確認 — keyword_coverage_avg を主に見る",
-          "⑥ Hit@k — gold に expected_record_ids を入れた後に正式 KPI 化",
+          "⑤ 指標確認 — 検索ヒット率とキーワード含有率を主に見る",
+          "⑥ 低い場合 — 再シード → 再評価。画面の「改善ヒント」を参照",
         ],
       },
       {
@@ -273,9 +274,9 @@ const guideSections: readonly GuideSection[] = [
         title: "評価時の注意",
         body: "指標の解釈とよくある落とし穴です。",
         items: [
-          "expected_record_ids 未設定 — Hit@k / citation は常に低値になりやすい",
+          "検索ヒット率 0% — データ未投入、または設備名不一致の可能性",
+          "キーワード 100%・Hit 0% — 回答は良いが検索評価の正解解決ができていない",
           "ケース数 4 — 回帰監視としては少なめ。曖昧質問の追加を推奨",
-          "Internal Server Error — 再デプロイ直後は待機、詳細メッセージを確認",
           "RAG 環境変数 — RETRIEVAL_TOP_K · RRF_TOP_K · RERANK_TOP_K",
         ],
       },
