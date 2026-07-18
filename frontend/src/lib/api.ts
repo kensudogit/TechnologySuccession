@@ -76,6 +76,9 @@ function formatApiError(status: number, detail: string): string {
   ) {
     return "認証が必要です。ログインしてください。";
   }
+  if (status === 500 && (!detail || detail === "Internal Server Error")) {
+    return "サーバーエラーが発生しました。ログイン状態を確認し、再度お試しください。";
+  }
   return detail;
 }
 

@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
-from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,10 +18,13 @@ from src.core.rag.query_analyzer import analyze_query
 from src.core.rag.retriever import HybridRetriever
 from src.db.models import EvalRun
 
+logger = logging.getLogger(__name__)
+
 
 def load_gold_dataset() -> list[dict]:
     path = Path(settings.data_dir) / "eval" / "gold_qa.json"
     if not path.exists():
+        logger.warning("Gold QA dataset not found: %s", path)
         return []
     data = json.loads(path.read_text(encoding="utf-8"))
     return data.get("cases", [])
@@ -29,6 +32,11 @@ def load_gold_dataset() -> list[dict]:
 
 async def run_evaluation(session: AsyncSession) -> EvalRun:
     cases = load_gold_dataset()
+    if not cases:
+        raise FileNotFoundError(
+            f"評価用データがありません: {Path(settings.data_dir) / 'eval' / 'gold_qa.json'}"
+        )
+
     pipeline = RagPipeline()
     retriever = HybridRetriever()
 
@@ -39,10 +47,26 @@ async def run_evaluation(session: AsyncSession) -> EvalRun:
         question = case["question"]
         expected_ids = [str(i) for i in case.get("expected_record_ids", [])]
         analysis = analyze_query(question)
-        chunks = await retriever.retrieve(session, question, analysis)
-        retrieved_ids = [str(c.record_id) for c in chunks]
 
-        response = await pipeline.ask(session, question)
+        try:
+            chunks = await retriever.retrieve(session, question, analysis)
+            retrieved_ids = [str(c.record_id) for c in chunks]
+            # 二重検索を避け、取得済みチャンクで回答生成
+            response = await pipeline.ask(session, question, chunks=chunks)
+        except Exception as exc:
+            logger.exception("Eval case failed: %s", case.get("id"))
+            case_results.append(
+                {
+                    "case_id": case.get("id"),
+                    "error": str(exc),
+                    "hit_at_3": False,
+                    "hit_at_5": False,
+                    "citation_match": False,
+                    "keyword_coverage": 0.0,
+                    "retrieved_ids": [],
+                }
+            )
+            continue
 
         h3 = hit_at_k(retrieved_ids, expected_ids, 3) if expected_ids else False
         h5 = hit_at_k(retrieved_ids, expected_ids, 5) if expected_ids else False
@@ -74,6 +98,7 @@ async def run_evaluation(session: AsyncSession) -> EvalRun:
         "citation_accuracy": citation_total / n_expected,
         "keyword_coverage_avg": keyword_total / n,
         "total_cases": len(cases),
+        "failed_cases": sum(1 for c in case_results if c.get("error")),
     }
 
     run = EvalRun(

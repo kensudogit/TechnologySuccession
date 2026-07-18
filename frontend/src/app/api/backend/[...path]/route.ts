@@ -12,6 +12,8 @@ type RouteParams = { path?: string[] };
 type HandlerContext = { params: RouteParams | Promise<RouteParams> };
 
 export const dynamic = "force-dynamic";
+/** 評価・シードなど長時間 API 向け（秒） */
+export const maxDuration = 300;
 
 export async function GET(req: NextRequest, context: HandlerContext) {
   return proxyGet(req, context);

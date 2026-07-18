@@ -42,7 +42,7 @@ def get_rag_framework_info() -> dict:
                 "embedding_bridge": "LangchainEmbedding(OpenAIEmbeddings)",
                 "vector_retriever": "MaintenanceVectorRetriever (pgvector)",
                 "keyword_retriever": "MaintenanceKeywordRetriever (FTS)",
-                "fusion": "QueryFusionRetriever (reciprocal_rerank)",
+                "fusion": "Sequential RRF (reciprocal_rerank)",
             },
             "llm_note": "回答生成は LangChain ChatOpenAI チェーンで実行",
         },

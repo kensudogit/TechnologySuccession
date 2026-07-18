@@ -46,8 +46,13 @@ async function proxyRequest(req: NextRequest, pathSegments: string[]) {
     init.body = await req.arrayBuffer();
   }
 
+  const controller = new AbortController();
+  // 評価など長時間処理向け（既定の短いタイムアウトを避ける）
+  const timeoutMs = path.startsWith("eval/") ? 240_000 : 60_000;
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
-    const res = await fetch(target, init);
+    const res = await fetch(target, { ...init, signal: controller.signal });
     const responseHeaders = new Headers();
     const resType = res.headers.get("content-type");
     if (resType) responseHeaders.set("content-type", resType);
@@ -67,10 +72,17 @@ async function proxyRequest(req: NextRequest, pathSegments: string[]) {
       headers: responseHeaders,
     });
   } catch (error) {
+    const aborted = error instanceof Error && error.name === "AbortError";
     return NextResponse.json(
-      { detail: "Backend API に接続できません。しばらく待ってから再読み込みしてください。" },
-      { status: 502 }
+      {
+        detail: aborted
+          ? "Backend API の応答がタイムアウトしました。評価は時間がかかる場合があります。"
+          : "Backend API に接続できません。しばらく待ってから再読み込みしてください。",
+      },
+      { status: aborted ? 504 : 502 }
     );
+  } finally {
+    clearTimeout(timer);
   }
 }
 

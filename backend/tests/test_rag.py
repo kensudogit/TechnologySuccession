@@ -9,7 +9,10 @@ from src.core.rag.chunker import build_chunk_text, build_document
 from src.core.rag.framework_info import get_rag_framework_info
 from src.core.rag.langchain_client import build_rag_prompt
 from src.core.rag.llamaindex_settings import configure_llamaindex
+from src.core.rag.nodes import chunk_row_to_node
 from src.core.rag.query_analyzer import analyze_query
+from src.core.rag.retriever import _rrf_fuse
+from uuid import uuid4
 
 
 @pytest.mark.unit
@@ -61,7 +64,7 @@ class TestRagFramework:
         info = get_rag_framework_info()
         assert info["framework"] == "langchain+llamaindex"
         assert info["langchain"]["components"]["llm"] == "ChatOpenAI"
-        assert info["llamaindex"]["components"]["fusion"] == "QueryFusionRetriever (reciprocal_rerank)"
+        assert info["llamaindex"]["components"]["fusion"] == "Sequential RRF (reciprocal_rerank)"
         assert info["retrieval"]["vector_search"] is True
 
     def test_langchain_prompt_template(self) -> None:
@@ -75,3 +78,32 @@ class TestRagFramework:
         from llama_index.core import Settings
 
         assert Settings.embed_model is not None
+
+    def test_rrf_fuse_merges_rankings(self) -> None:
+        rid = uuid4()
+        cid_a = uuid4()
+        cid_b = uuid4()
+        a = chunk_row_to_node(
+            chunk_id=cid_a,
+            record_id=rid,
+            chunk_text="a",
+            score=0.9,
+            equipment_name="EQ",
+            event_date=None,
+            source_file="x.xlsx",
+            rank_source="vector",
+        )
+        b = chunk_row_to_node(
+            chunk_id=cid_b,
+            record_id=rid,
+            chunk_text="b",
+            score=0.8,
+            equipment_name="EQ",
+            event_date=None,
+            source_file="x.xlsx",
+            rank_source="keyword",
+        )
+        fused = _rrf_fuse([[a], [b, a]], top_k=2)
+        assert len(fused) == 2
+        assert fused[0].chunk_id in {cid_a, cid_b}
+

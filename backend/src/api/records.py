@@ -1,6 +1,7 @@
 """記録・評価 API。"""
 from __future__ import annotations
 
+import logging
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -11,6 +12,8 @@ from src.core.evaluation.runner import run_evaluation
 from src.core.auth.jwt_handler import optional_auth, require_auth
 from src.db.database import get_db
 from src.db.models import EvalRun, IngestJob, MaintenanceRecord
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["records"])
 
@@ -107,7 +110,16 @@ async def evaluate(
     db: AsyncSession = Depends(get_db),
     _user: dict = Depends(require_auth),
 ):
-    run = await run_evaluation(db)
+    try:
+        run = await run_evaluation(db)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Evaluation failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"評価の実行に失敗しました: {exc}",
+        ) from exc
     return {
         "run_id": str(run.id),
         "prompt_version": run.prompt_version,
