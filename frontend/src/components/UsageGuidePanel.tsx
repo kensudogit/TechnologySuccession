@@ -19,7 +19,7 @@ type FeaturedBlock = {
   title: string;
   body: string;
   items?: readonly string[];
-  variant?: "architecture" | "rag" | "ingest" | "chat" | "auth" | "default";
+  variant?: "architecture" | "rag" | "ingest" | "chat" | "auth" | "eval" | "default";
 };
 
 const architectureFeatured: FeaturedBlock = {
@@ -45,12 +45,30 @@ const ragFeatured: FeaturedBlock = {
     "クエリ書き換え後に pgvector / キーワード検索し、RRF 融合と設備・症状ブーストで再ランク。関連度順コンテキストを LangChain GPT-4o で回答します。",
   variant: "rag",
   items: [
-    "取り込み時 — チャンク生成（LlamaIndex Document）→ Embedding 保存",
+    "クエリ理解 — 設備名・症状・別名を Embedding / キーワードに反映",
+    "取り込み — summary / 症状 / 原因 / 処置のマルチチャンク + バッチ Embedding",
     "ベクトル検索 — MaintenanceVectorRetriever（コサイン類似度）",
-    "キーワード検索 — 日本語 ILIKE OR + 設備ブースト",
-    "融合 — QueryFusionRetriever（reciprocal_rerank）",
-    "生成 — LangChain prompt | ChatOpenAI | StrOutputParser",
+    "キーワード検索 — 日本語 ILIKE OR + 設備ブースト（ハードフィルタなし）",
+    "融合・再ランク — Sequential RRF → 設備/症状ブーストで並べ替え",
+    "生成 — 意図別プロンプト + LangChain ChatOpenAI",
+    "信頼度 — vector score 基準（high ≥0.55 / medium ≥0.35）",
     "GET /api/backend/rag/status — フレームワーク構成の確認",
+  ],
+};
+
+const evalFeatured: FeaturedBlock = {
+  badge: "Eval",
+  title: "RAG 精度評価（/eval）",
+  body:
+    "ゴールド Q&A（data/eval/gold_qa.json）に対して Retrieval / 引用 / キーワードカバレッジを計測します。要ログイン。",
+  variant: "eval",
+  items: [
+    "評価実行 — POST /eval/run（数分かかることがあります）",
+    "主な指標 — retrieval_hit_at_3/5 · citation_accuracy · keyword_coverage_avg",
+    "ゴールド例 —「コンプレッサA-03の異音、過去の原因は？」",
+    "注意 — expected_record_ids 未設定時は Hit@k / citation が実質無効",
+    "マルチチャンク反映 — 改善後は再シード / 再取り込みを推奨",
+    "オフライン評価 — backend/scripts/offline_rag_eval.py（DB/OpenAI 不要）",
   ],
 };
 
@@ -63,7 +81,8 @@ const chatFeatured: FeaturedBlock = {
   items: [
     "設備名 — 例: コンプレッサA-03（絞り込み用・任意）",
     "質問例 —「異音が出ている。過去に似た事例は？」",
-    "信頼度 — high / medium / low（検索スコアから算出）",
+    "信頼度 — high / medium / low（ベクトル類似度から算出）",
+    "回答形式 — 想定原因 · 推奨処置 · 確認ポイント · 参考実績",
     "要ログイン — JWT_SECRET 有効時は Login 後に利用",
     "OPENAI_API_KEY 未設定 — ルールベースの簡易回答にフォールバック",
   ],
@@ -79,8 +98,10 @@ const ingestFeatured: FeaturedBlock = {
     "Excel — POST /ingest/excel（設備名・症状・処置等を正規化）",
     "日報 — POST /ingest/daily-report（テキスト解析）",
     "PDF/画像 — POST /ingest/document（PyMuPDF 抽出）",
+    "チャンク — summary + フィールド単位（症状/原因/処置）+ 長文分割",
+    "Embedding — バッチ生成（OpenAI text-embedding-3-small）",
     "重複排除 — content_hash で同一レコードをスキップ",
-    "要ログイン — Ingest / Chat / Tests は認証必須",
+    "要ログイン — Ingest / Chat / Tests / Eval は認証必須",
   ],
 };
 
@@ -105,9 +126,10 @@ const techStack = [
   "PostgreSQL · pgvector",
   "LangChain · OpenAI",
   "LlamaIndex · RRF",
+  "再ランク · マルチチャンク",
   "Docker · Railway",
-  "HNSW · FTS",
-  "pytest · Web UI",
+  "HNSW · ILIKE",
+  "pytest · Eval",
 ] as const;
 
 const archDiagram = `Browser (保全担当者)
@@ -122,9 +144,11 @@ Next.js :PORT (Railway)
     ├─ /tests         pytest 実行
     ├─ /login         JWT ログイン
     └─ /api/backend/* ──proxy──► FastAPI :18080
+              ├─ クエリ書き換え (設備・症状)
               ├─ pgvector (ベクトル検索)
-              ├─ PostgreSQL FTS
-              ├─ LangChain (生成)
+              ├─ Keyword ILIKE + 設備ブースト
+              ├─ RRF 融合 → 再ランク
+              ├─ LangChain (意図別生成)
               └─ OpenAI API`;
 
 type GuideSection = {
@@ -153,7 +177,8 @@ const guideSections: readonly GuideSection[] = [
           "② / — 登録実績件数・最近の保全実績を確認",
           "③ /chat —「コンプレッサA-03の異音、過去の原因は？」で RAG を試す",
           "④ データが空 — Ingest で Excel 投入、または管理 API で seed",
-          "⑤ /tests — Unit スイートで pytest を実行（要ログイン）",
+          "⑤ /eval — ゴールド Q&A で精度評価（要ログイン）",
+          "⑥ /tests — Unit スイートで pytest を実行（要ログイン）",
         ],
       },
       {
@@ -162,7 +187,7 @@ const guideSections: readonly GuideSection[] = [
         items: [
           "/api/backend-status — combined_deploy · deployed_commit",
           "/api/backend/health — DB 接続 · openai · auth 状態",
-          "/api/backend/rag/status — LangChain / LlamaIndex 構成",
+          "/api/backend/rag/status — LangChain / LlamaIndex · rerank · multi_chunk",
           "/docs — Swagger API リファレンス（Backend 直接）",
         ],
       },
@@ -182,18 +207,29 @@ const guideSections: readonly GuideSection[] = [
       },
       {
         title: "Records（/records）",
-        body: "保全実績の全件検索・フィルタ表示です。",
+        body: "保全実績の全件検索・フィルタ表示です。設備名・ラインは横書き（折り返しなし）で表示します。",
         items: [
           "設備名フィルタ — 部分一致検索",
-          "カラム — 日付 · 設備 · 症状 · 原因 · 処置 · 出典ファイル",
+          "カラム — 日付 · 設備名 · ライン · 症状 · 原因 · 処置 · 担当 · 出典",
+        ],
+      },
+      {
+        title: "Chat（/chat）",
+        body: "ハイブリッド RAG で過去実績を根拠に回答します。要ログイン。",
+        items: [
+          "質問例 —「コンプレッサA-03の異音、過去の原因は？」",
+          "処理 — クエリ書き換え → ベクトル/キーワード → RRF → 再ランク → 生成",
+          "参考実績 — 関連度の高いレコードが右側に表示",
         ],
       },
       {
         title: "Eval（/eval）",
-        body: "ゴールド Q&A セットで RAG 精度（Hit@k 等）を評価します。要ログイン。",
+        body: "ゴールド Q&A セットで RAG 精度を評価します。要ログイン。",
         items: [
-          "評価実行 — POST /eval/run",
-          "結果 — プロンプトバージョン別メトリクス",
+          "評価実行 — 「評価を実行」→ POST /eval/run",
+          "結果 — retrieval_hit_at_3/5 · citation · keyword_coverage_avg",
+          "データ — data/eval/gold_qa.json（4 ケース）",
+          "改善後 — 再シードしてマルチチャンクを反映してから評価",
         ],
       },
       {
@@ -209,6 +245,43 @@ const guideSections: readonly GuideSection[] = [
     ],
   },
   {
+    label: "RAG 精度評価",
+    steps: [
+      {
+        title: "本番での評価手順",
+        body: "デプロイ後に精度を確認する標準フローです。",
+        items: [
+          "① /login — ログイン",
+          "② データ確認 — /records にサンプル実績があること",
+          "③ 空または旧チャンクのみ — 管理 seed または /ingest で再投入",
+          "④ /eval —「評価を実行」をクリック",
+          "⑤ 指標確認 — keyword_coverage_avg を主に見る",
+          "⑥ Hit@k — gold に expected_record_ids を入れた後に正式 KPI 化",
+        ],
+      },
+      {
+        title: "オフライン評価（開発用）",
+        body: "DB / OpenAI なしでクエリ理解と正解レコード適合を確認できます。",
+        items: [
+          "スクリプト — backend/scripts/offline_rag_eval.py",
+          "実行例 — docker run … python scripts/offline_rag_eval.py",
+          "見る指標 — Hit@1 · Hit@3 · equipment/symptom extraction · keyword coverage",
+          "レポート — scripts/offline_rag_eval_report.json",
+        ],
+      },
+      {
+        title: "評価時の注意",
+        body: "指標の解釈とよくある落とし穴です。",
+        items: [
+          "expected_record_ids 未設定 — Hit@k / citation は常に低値になりやすい",
+          "ケース数 4 — 回帰監視としては少なめ。曖昧質問の追加を推奨",
+          "Internal Server Error — 再デプロイ直後は待機、詳細メッセージを確認",
+          "RAG 環境変数 — RETRIEVAL_TOP_K · RRF_TOP_K · RERANK_TOP_K",
+        ],
+      },
+    ],
+  },
+  {
     label: "Railway デプロイ",
     steps: [
       {
@@ -219,6 +292,7 @@ const guideSections: readonly GuideSection[] = [
           "Start Command — 空（/start.sh を使用）",
           "DATABASE_URL — PostgreSQL プラグインから自動設定",
           "JWT_SECRET · OPENAI_API_KEY · ALLOWED_ORIGINS",
+          "AUTH_USERNAME / AUTH_PASSWORD — 未設定時は admin / admin",
           "再デプロイ — Clear build cache 推奨",
         ],
       },
@@ -227,9 +301,11 @@ const guideSections: readonly GuideSection[] = [
         body: "画面の赤バナーや API エラー時の確認ポイントです。",
         items: [
           "Backend API に接続できません — 再デプロイ直後は数十秒待って再読み込み",
+          "認証エラー — Railway の AUTH_PASSWORD を確認（空白・引用符に注意）",
           "認証が必要 — /login から admin / admin",
           "Failed to fetch — 期限切れトークン削除 → 再ログイン",
-          "npm run dev 禁止 — 本番は Docker  production ビルドのみ",
+          "評価タイムアウト — 評価は最大数分。完了まで待機",
+          "npm run dev 禁止 — 本番は Docker production ビルドのみ",
         ],
       },
     ],
@@ -456,6 +532,7 @@ export function UsageGuidePanel() {
           </figure>
 
           <FeaturedSection block={ragFeatured} />
+          <FeaturedSection block={evalFeatured} />
           <FeaturedSection block={chatFeatured} />
           <FeaturedSection block={ingestFeatured} />
           <FeaturedSection block={authFeatured} />

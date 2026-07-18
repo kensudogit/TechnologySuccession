@@ -220,6 +220,11 @@ body {
   background: linear-gradient(135deg, rgba(237, 233, 254, 0.95), rgba(236, 253, 245, 0.75));
 }
 
+.usage-guide-featured--eval {
+  border-color: rgba(244, 63, 94, 0.35);
+  background: linear-gradient(135deg, rgba(255, 241, 242, 0.95), rgba(236, 253, 245, 0.75));
+}
+
 .usage-guide-featured-head {
   display: flex;
   align-items: center;
