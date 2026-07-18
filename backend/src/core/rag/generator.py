@@ -34,23 +34,42 @@ def _build_sources(chunks: list[RetrievedChunk]) -> list[dict]:
                 "event_date": chunk.event_date,
                 "source_file": chunk.source_file,
                 "excerpt": chunk.chunk_text[:200],
+                "score": round(chunk.score, 4),
+                "vector_score": (
+                    round(chunk.vector_score, 4) if chunk.vector_score is not None else None
+                ),
             }
         )
     return sources
 
 
 def _confidence(chunks: list[RetrievedChunk]) -> str:
+    """ベクトル類似度を主、再ランクスコアを副として信頼度を判定する。"""
     if not chunks:
         return "low"
-    top_score = max(c.score for c in chunks)
-    if top_score >= 0.7:
+
+    top = chunks[0]
+    vector = top.vector_score
+    if vector is not None:
+        if vector >= 0.55:
+            return "high"
+        if vector >= 0.35:
+            return "medium"
+        return "low"
+
+    # ベクトル未取得時は再ランク後スコアで判定
+    if top.score >= 0.7:
         return "high"
-    if top_score >= 0.3:
+    if top.score >= 0.4:
         return "medium"
     return "low"
 
 
-async def generate_answer(query: str, chunks: list[RetrievedChunk]) -> ChatResponse:
+async def generate_answer(
+    query: str,
+    chunks: list[RetrievedChunk],
+    intent: str | None = None,
+) -> ChatResponse:
     sources = _build_sources(chunks)
     confidence = _confidence(chunks)
 
@@ -62,7 +81,7 @@ async def generate_answer(query: str, chunks: list[RetrievedChunk]) -> ChatRespo
         )
 
     context = build_context(chunks)
-    system_prompt = load_system_prompt()
+    system_prompt = load_system_prompt(intent=intent)
 
     if not settings.openai_api_key:
         top = chunks[0]

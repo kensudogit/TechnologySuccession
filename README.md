@@ -88,7 +88,7 @@ python scripts/seed_data.py
 | 機能 | 説明 |
 |------|------|
 | データ取り込み | Excel / 日報 / PDF のクレンジング + DB 化 + Embedding |
-| RAG チャット | ハイブリッド検索（pgvector + FTS）+ GPT-4o 回答 |
+| RAG チャット | クエリ書き換え + pgvector/キーワード RRF + 再ランク + 意図別プロンプト + GPT-4o |
 | 精度評価 | ゴールド Q&A セットによる Hit@k / キーワードカバレッジ |
 
 ## API エンドポイント

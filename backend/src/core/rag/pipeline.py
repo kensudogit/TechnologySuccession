@@ -22,7 +22,7 @@ class RagPipeline:
         question: str,
         chunks: list[RetrievedChunk] | None = None,
     ) -> ChatResponse:
+        analysis = analyze_query(question)
         if chunks is None:
-            analysis = analyze_query(question)
             chunks = await self.retriever.retrieve(session, question, analysis)
-        return await generate_answer(question, chunks)
+        return await generate_answer(question, chunks, intent=analysis.intent)

@@ -16,3 +16,11 @@ class Embedder:
 
     async def embed_query(self, query: str) -> list[float]:
         return await self.embed_text(query)
+
+    async def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        """複数テキストをバッチ Embedding する。"""
+        if not texts:
+            return []
+        if not settings.openai_api_key:
+            return [[0.0] * settings.embedding_dimensions for _ in texts]
+        return await self._embeddings.aembed_documents(texts)

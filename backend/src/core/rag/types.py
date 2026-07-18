@@ -15,3 +15,5 @@ class RetrievedChunk:
     event_date: str | None
     source_file: str | None
     rank_source: str
+    vector_score: float | None = None
+    keyword_score: float | None = None

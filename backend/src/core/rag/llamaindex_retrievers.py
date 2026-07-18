@@ -10,14 +10,22 @@ from llama_index.core.schema import NodeWithScore, QueryBundle
 from src.config import settings
 from src.core.rag.embedder import Embedder
 from src.core.rag.nodes import chunk_row_to_node
+from src.core.rag.query_analyzer import QueryAnalysis
 
 
 class MaintenanceVectorRetriever(BaseRetriever):
     """pgvector コサイン類似度検索（LlamaIndex Retriever）。"""
 
-    def __init__(self, session: AsyncSession, embedder: Embedder, limit: int | None = None) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        embedder: Embedder,
+        analysis: QueryAnalysis | None = None,
+        limit: int | None = None,
+    ) -> None:
         self._session = session
         self._embedder = embedder
+        self._analysis = analysis
         self._limit = limit or settings.retrieval_top_k
         super().__init__()
 
@@ -25,7 +33,12 @@ class MaintenanceVectorRetriever(BaseRetriever):
         raise NotImplementedError("Use aretrieve() with async SQLAlchemy session")
 
     async def _aretrieve(self, query_bundle: QueryBundle) -> list[NodeWithScore]:
-        query_vector = await self._embedder.embed_query(query_bundle.query_str)
+        query_text = (
+            self._analysis.embedding_query
+            if self._analysis is not None
+            else query_bundle.query_str
+        )
+        query_vector = await self._embedder.embed_query(query_text)
         sql = text(
             """
             SELECT rc.id, rc.record_id, rc.chunk_text,
@@ -59,16 +72,16 @@ class MaintenanceVectorRetriever(BaseRetriever):
 
 
 class MaintenanceKeywordRetriever(BaseRetriever):
-    """PostgreSQL FTS + ILIKE キーワード検索（LlamaIndex Retriever）。"""
+    """日本語向けキーワード検索（ILIKE OR + 簡易スコア）。"""
 
     def __init__(
         self,
         session: AsyncSession,
-        equipment_names: list[str],
+        analysis: QueryAnalysis,
         limit: int | None = None,
     ) -> None:
         self._session = session
-        self._equipment_names = equipment_names
+        self._analysis = analysis
         self._limit = limit or settings.retrieval_top_k
         super().__init__()
 
@@ -76,30 +89,62 @@ class MaintenanceKeywordRetriever(BaseRetriever):
         raise NotImplementedError("Use aretrieve() with async SQLAlchemy session")
 
     async def _aretrieve(self, query_bundle: QueryBundle) -> list[NodeWithScore]:
-        terms = query_bundle.query_str.replace("?", " ").replace("？", " ")
-        filter_sql = ""
-        params: dict = {"query": terms, "limit": self._limit}
-        if self._equipment_names:
-            filter_sql = "AND mr.equipment_name = ANY(:equipments)"
-            params["equipments"] = self._equipment_names
+        terms = self._analysis.keyword_terms
+        if not terms:
+            cleaned = query_bundle.query_str.replace("?", " ").replace("？", " ").strip()
+            terms = [cleaned[:50]] if cleaned else []
+        if not terms:
+            return []
+
+        # 各語に対する ILIKE 条件（日本語は FTS simple より ILIKE の方が実用的）
+        like_clauses = []
+        params: dict = {"limit": self._limit}
+        for i, term in enumerate(terms[:8]):
+            key = f"like_{i}"
+            params[key] = f"%{term}%"
+            like_clauses.append(
+                f"""(
+                    mr.equipment_name ILIKE :{key}
+                    OR mr.symptom ILIKE :{key}
+                    OR mr.root_cause ILIKE :{key}
+                    OR mr.action_taken ILIKE :{key}
+                    OR mr.raw_text ILIKE :{key}
+                    OR rc.chunk_text ILIKE :{key}
+                )"""
+            )
+
+        where_sql = " OR ".join(like_clauses)
+
+        # 設備名一致はブースト（ハードフィルタにしない）
+        equip_boost_sql = "0"
+        if self._analysis.equipment_names:
+            params["equipments"] = self._analysis.equipment_names
+            equip_boost_sql = """
+                CASE WHEN mr.equipment_name = ANY(:equipments) THEN 2.0 ELSE 0.0 END
+            """
+
+        # ヒット語数のおおよそのスコア
+        hit_score_parts = []
+        for i in range(min(len(terms), 8)):
+            key = f"like_{i}"
+            hit_score_parts.append(
+                f"(CASE WHEN mr.symptom ILIKE :{key} OR mr.root_cause ILIKE :{key} "
+                f"OR mr.action_taken ILIKE :{key} OR rc.chunk_text ILIKE :{key} THEN 1 ELSE 0 END)"
+            )
+        hit_score_sql = " + ".join(hit_score_parts) if hit_score_parts else "0"
 
         sql = text(
             f"""
             SELECT rc.id, rc.record_id, rc.chunk_text,
                    mr.equipment_name, mr.event_date, mr.source_file,
-                   ts_rank(mr.search_vector, plainto_tsquery('simple', :query)) AS score
+                   ({hit_score_sql})::float + ({equip_boost_sql}) AS score
             FROM record_chunks rc
             JOIN maintenance_records mr ON mr.id = rc.record_id
-            WHERE mr.search_vector @@ plainto_tsquery('simple', :query)
-               OR mr.raw_text ILIKE :like_query
-               OR mr.symptom ILIKE :like_query
-               OR mr.action_taken ILIKE :like_query
-            {filter_sql}
-            ORDER BY score DESC NULLS LAST
+            WHERE {where_sql}
+            ORDER BY score DESC NULLS LAST, mr.event_date DESC NULLS LAST
             LIMIT :limit
             """
         )
-        params["like_query"] = f"%{terms[:50]}%"
         result = await self._session.execute(sql, params)
         return [
             chunk_row_to_node(

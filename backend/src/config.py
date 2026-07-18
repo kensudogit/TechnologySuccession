@@ -74,8 +74,11 @@ class Settings(BaseSettings):
     config_dir: str = str(Path(__file__).parent.parent / "config")
 
     embedding_dimensions: int = 1536
-    retrieval_top_k: int = 10
-    rrf_top_k: int = 5
+    retrieval_top_k: int = Field(default=12, validation_alias="RETRIEVAL_TOP_K")
+    rrf_top_k: int = Field(default=8, validation_alias="RRF_TOP_K")
+    rerank_top_k: int = Field(default=5, validation_alias="RERANK_TOP_K")
+    chunk_max_chars: int = Field(default=600, validation_alias="CHUNK_MAX_CHARS")
+    chunk_overlap: int = Field(default=80, validation_alias="CHUNK_OVERLAP")
 
     @property
     def database_url_normalized(self) -> str:

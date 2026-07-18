@@ -10,14 +10,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.cleansing.daily_report_parser import parse_daily_report_file
 from src.core.cleansing.excel_cleaner import cleanse_excel
-from src.core.rag.chunker import build_chunk_text, build_document
+from src.core.rag.chunker import build_documents
 from src.core.rag.embedder import Embedder
 from src.db.models import IngestJob, IngestStatus, MaintenanceRecord, RecordChunk, SourceType
 
 logger = logging.getLogger(__name__)
 
 
-async def _save_record(session: AsyncSession, data: dict[str, Any]) -> MaintenanceRecord | None:
+async def _save_record(
+    session: AsyncSession,
+    data: dict[str, Any],
+    embedder: Embedder | None = None,
+) -> MaintenanceRecord | None:
     existing = await session.execute(
         select(MaintenanceRecord).where(MaintenanceRecord.content_hash == data["content_hash"])
     )
@@ -65,18 +69,20 @@ async def _save_record(session: AsyncSession, data: dict[str, Any]) -> Maintenan
         {"id": str(record.id)},
     )
 
-    doc = build_document(record)
-    chunk_text = doc.text
-    embedder = Embedder()
-    embedding = await embedder.embed_text(chunk_text)
-    chunk = RecordChunk(
-        record_id=record.id,
-        chunk_text=chunk_text,
-        chunk_type="summary",
-        embedding=embedding,
-        metadata_json=doc.metadata,
-    )
-    session.add(chunk)
+    docs = build_documents(record)
+    texts = [doc.text for doc in docs]
+    emb = embedder or Embedder()
+    embeddings = await emb.embed_texts(texts)
+
+    for doc, embedding in zip(docs, embeddings, strict=True):
+        chunk = RecordChunk(
+            record_id=record.id,
+            chunk_text=doc.text,
+            chunk_type=str(doc.metadata.get("chunk_type") or "summary"),
+            embedding=embedding,
+            metadata_json=doc.metadata,
+        )
+        session.add(chunk)
     return record
 
 
@@ -88,6 +94,7 @@ async def ingest_excel(session: AsyncSession, file_path: str, source_file: str) 
     try:
         report = cleanse_excel(file_path, source_file)
         imported = 0
+        embedder = Embedder()
         for rec in report.records:
             data = {
                 "source_type": rec.source_type,
@@ -110,7 +117,7 @@ async def ingest_excel(session: AsyncSession, file_path: str, source_file: str) 
                 "cleansing_issues": rec.cleansing_issues,
                 "content_hash": rec.content_hash,
             }
-            saved = await _save_record(session, data)
+            saved = await _save_record(session, data, embedder=embedder)
             if saved:
                 imported += 1
 
@@ -141,8 +148,9 @@ async def ingest_daily_report(session: AsyncSession, file_path: str, source_file
     try:
         records = parse_daily_report_file(file_path, source_file)
         imported = 0
+        embedder = Embedder()
         for data in records:
-            saved = await _save_record(session, data)
+            saved = await _save_record(session, data, embedder=embedder)
             if saved:
                 imported += 1
 

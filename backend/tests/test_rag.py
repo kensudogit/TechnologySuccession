@@ -2,17 +2,20 @@
 from __future__ import annotations
 
 from unittest.mock import MagicMock
+from uuid import uuid4
 
 import pytest
 
-from src.core.rag.chunker import build_chunk_text, build_document
+from src.core.rag.chunker import build_chunk_text, build_document, build_documents
+from src.core.rag.context_builder import build_context
 from src.core.rag.framework_info import get_rag_framework_info
+from src.core.rag.generator import _confidence
 from src.core.rag.langchain_client import build_rag_prompt
 from src.core.rag.llamaindex_settings import configure_llamaindex
 from src.core.rag.nodes import chunk_row_to_node
 from src.core.rag.query_analyzer import analyze_query
-from src.core.rag.retriever import _rrf_fuse
-from uuid import uuid4
+from src.core.rag.retriever import _rerank, _rrf_fuse
+from src.core.rag.types import RetrievedChunk
 
 
 @pytest.mark.unit
@@ -23,6 +26,9 @@ class TestRagQueryAnalyzer:
         analysis = analyze_query("コンプレッサA-03が異音を出している。過去の原因は？")
         assert analysis.intent == "troubleshooting"
         assert "コンプレッサA-03" in analysis.equipment_names
+        assert "異音" in analysis.symptom_keywords
+        assert "異音" in analysis.embedding_query
+        assert analysis.keyword_terms
 
     def test_analyze_history_query(self) -> None:
         analysis = analyze_query("ポンプB-12の前回の故障履歴は？")
@@ -46,14 +52,24 @@ class TestRagChunker:
         record.measured_value = None
         record.unit = None
         record.raw_text = "raw"
+        record.source_file = "sample.xlsx"
 
         text = build_chunk_text(record)
         doc = build_document(record)
+        docs = build_documents(record)
 
         assert "コンプレッサA-03" in text
         assert doc.text == text
         assert doc.metadata["equipment_name"] == "コンプレッサA-03"
         assert doc.metadata["chunk_type"] == "summary"
+        # summary + symptom + root_cause + action_taken
+        assert len(docs) >= 4
+        assert {d.metadata["chunk_type"] for d in docs} >= {
+            "summary",
+            "symptom",
+            "root_cause",
+            "action_taken",
+        }
 
 
 @pytest.mark.unit
@@ -64,8 +80,10 @@ class TestRagFramework:
         info = get_rag_framework_info()
         assert info["framework"] == "langchain+llamaindex"
         assert info["langchain"]["components"]["llm"] == "ChatOpenAI"
-        assert info["llamaindex"]["components"]["fusion"] == "Sequential RRF (reciprocal_rerank)"
+        assert "RRF" in info["llamaindex"]["components"]["fusion"]
         assert info["retrieval"]["vector_search"] is True
+        assert info["retrieval"]["rerank"] is True
+        assert info["retrieval"]["query_rewrite"] is True
 
     def test_langchain_prompt_template(self) -> None:
         prompt = build_rag_prompt("system prompt")
@@ -106,4 +124,73 @@ class TestRagFramework:
         fused = _rrf_fuse([[a], [b, a]], top_k=2)
         assert len(fused) == 2
         assert fused[0].chunk_id in {cid_a, cid_b}
+        assert fused[0].vector_score is not None or fused[0].keyword_score is not None
 
+    def test_context_keeps_retrieval_order(self) -> None:
+        a = RetrievedChunk(
+            chunk_id=uuid4(),
+            record_id=uuid4(),
+            chunk_text="newer-looking but lower rank",
+            score=0.2,
+            equipment_name="EQ",
+            event_date="2025-01-01",
+            source_file="a.xlsx",
+            rank_source="fusion",
+            vector_score=0.2,
+        )
+        b = RetrievedChunk(
+            chunk_id=uuid4(),
+            record_id=uuid4(),
+            chunk_text="best match",
+            score=0.9,
+            equipment_name="EQ",
+            event_date="2020-01-01",
+            source_file="b.xlsx",
+            rank_source="fusion",
+            vector_score=0.9,
+        )
+        ctx = build_context([b, a])
+        assert ctx.index("best match") < ctx.index("newer-looking")
+
+    def test_confidence_uses_vector_score(self) -> None:
+        high = RetrievedChunk(
+            chunk_id=uuid4(),
+            record_id=uuid4(),
+            chunk_text="x",
+            score=0.01,
+            equipment_name="EQ",
+            event_date=None,
+            source_file="a.xlsx",
+            rank_source="fusion",
+            vector_score=0.8,
+        )
+        assert _confidence([high]) == "high"
+
+    def test_rerank_boosts_equipment_match(self) -> None:
+        analysis = analyze_query("コンプレッサA-03の異音")
+        weak = RetrievedChunk(
+            chunk_id=uuid4(),
+            record_id=uuid4(),
+            chunk_text="ポンプの圧力低下",
+            score=0.05,
+            equipment_name="ポンプB-12",
+            event_date=None,
+            source_file="a.xlsx",
+            rank_source="fusion",
+            vector_score=0.5,
+            keyword_score=1.0,
+        )
+        strong = RetrievedChunk(
+            chunk_id=uuid4(),
+            record_id=uuid4(),
+            chunk_text="コンプレッサA-03 異音 ベアリング",
+            score=0.04,
+            equipment_name="コンプレッサA-03",
+            event_date=None,
+            source_file="b.xlsx",
+            rank_source="fusion",
+            vector_score=0.45,
+            keyword_score=2.0,
+        )
+        ranked = _rerank([weak, strong], analysis)
+        assert ranked[0].equipment_name == "コンプレッサA-03"
