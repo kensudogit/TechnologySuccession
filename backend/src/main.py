@@ -1,4 +1,4 @@
-"""TechnologySuccession RAG — FastAPI アプリケーション。"""
+"""技術継承プラットフォーム — FastAPI アプリケーション。"""
 from __future__ import annotations
 
 import asyncio
@@ -56,7 +56,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    description="製造現場保全実績 RAG システム — トラブルシューティング支援",
+    description="技術継承プラットフォーム — 保全実績 RAG によるトラブルシューティング支援",
     lifespan=lifespan,
 )
 

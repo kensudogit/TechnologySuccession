@@ -68,7 +68,7 @@ _LANDING_HTML = """<!DOCTYPE html>
 <body>
   <div class="wrap">
     <h1>{app_name}</h1>
-    <p class="sub">保全実績 RAG システム v{version} — API は稼働中です</p>
+    <p class="sub">技術継承プラットフォーム v{version} — API は稼働中です</p>
 
     <div class="grid">
       <div class="card">

@@ -1,6 +1,8 @@
-# TechnologySuccession RAG
+# 技術継承プラットフォーム
 
-製造現場の保全実績データ（Excel・日報・PDF）を PostgreSQL + pgvector にデータベース化し、RAG によるトラブルシューティングを支援するシステムです。
+製造現場の保全実績データ（Excel・日報・PDF）を PostgreSQL + pgvector にデータベース化し、RAG でベテラン知見の継承とトラブルシューティングを支援するシステムです。
+
+（リポジトリ名: `TechnologySuccession`）
 
 ## 技術スタック
 

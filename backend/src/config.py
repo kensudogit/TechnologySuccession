@@ -24,7 +24,7 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    app_name: str = "TechnologySuccession RAG"
+    app_name: str = "技術継承プラットフォーム"
     app_version: str = "0.1.0"
     debug: bool = False
 

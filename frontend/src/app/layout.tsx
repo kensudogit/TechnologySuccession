@@ -6,8 +6,8 @@ import { BackendStatusBanner } from "@/components/BackendStatusBanner";
 import { UsageGuidePanel } from "@/components/UsageGuidePanel";
 
 export const metadata: Metadata = {
-  title: "TechnologySuccession RAG",
-  description: "保全実績 RAG — トラブルシューティング支援",
+  title: "技術継承プラットフォーム",
+  description: "保全実績 RAG による技術継承・トラブルシューティング支援",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
             <Link href="/" className="text-lg font-semibold text-emerald-400">
-              TechnologySuccession
+              技術継承プラットフォーム
             </Link>
             <nav className="flex gap-4 text-sm">
               <Link href="/records" className="hover:text-emerald-400">Records</Link>

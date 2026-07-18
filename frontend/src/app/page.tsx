@@ -57,9 +57,9 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <section>
-        <h1 className="text-3xl font-bold">保全実績 RAG システム</h1>
+        <h1 className="text-3xl font-bold">技術継承プラットフォーム</h1>
         <p className="mt-2 text-slate-400">
-          数年分の保全実績を検索し、現場トラブルシューティングを支援します。
+          保全実績をデータベース化し、RAG でベテラン知見を次世代へ引き継ぎます。
         </p>
       </section>
 

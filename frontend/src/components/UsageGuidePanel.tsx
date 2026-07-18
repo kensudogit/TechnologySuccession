@@ -319,9 +319,9 @@ const L = {
   dragHint: "ドラッグで移動",
   expand: "開く",
   collapse: "閉じる",
-  heroTitle: "保全実績 RAG システム",
+  heroTitle: "技術継承プラットフォーム",
   heroLead:
-    "製造現場の保全実績を PostgreSQL + pgvector に蓄積し、LangChain / LlamaIndex によるハイブリッド RAG でトラブルシューティングを支援します。",
+    "製造現場の保全実績を PostgreSQL + pgvector に蓄積し、LangChain / LlamaIndex によるハイブリッド RAG でベテラン知見の継承とトラブルシューティングを支援します。",
   stackLabel: "Tech stack",
   diagramLabel: "Service topology",
   workflowLabel: "詳細利用手順",
@@ -513,7 +513,7 @@ export function UsageGuidePanel() {
       {expanded ? (
         <div className="usage-guide-body">
           <div className="usage-guide-hero">
-            <p className="usage-guide-hero-kicker">TechnologySuccession RAG</p>
+            <p className="usage-guide-hero-kicker">技術継承プラットフォーム</p>
             <h2 className="usage-guide-hero-title">{L.heroTitle}</h2>
             <p className="usage-guide-hero-lead">{L.heroLead}</p>
             <div className="usage-guide-stack" aria-label={L.stackLabel}>
