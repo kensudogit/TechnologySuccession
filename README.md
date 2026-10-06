@@ -1,8 +1,46 @@
-# 技術継承プラットフォーム
+# Technology Succession AI — Manufacturing Knowledge RAG
 
-製造現場の保全実績データ（Excel・日報・PDF）を PostgreSQL + pgvector にデータベース化し、RAG でベテラン知見の継承とトラブルシューティングを支援するシステムです。
+> **Knowledge Succession Platform** — 製造現場に蓄積されたExcel・日報・PDFを検索可能な知識資産へ変換し、RAGによってベテラン技術者の暗黙知継承とトラブルシューティングを支援します。
+>
+> **Stack:** Python · FastAPI · LangChain · LlamaIndex · PostgreSQL · pgvector · Next.js · React · TypeScript · OpenAI
 
-（リポジトリ名: `TechnologySuccession`）
+## Architecture
+
+```text
+Excel / Daily Reports / PDF
+            │
+            ▼
+   Ingestion / Cleaning
+            │
+            ▼
+Embedding + PostgreSQL / pgvector
+            │
+      ┌─────┴─────┐
+      ▼           ▼
+ Vector Search  Keyword Search
+      └─────┬─────┘
+            ▼
+       RRF / Rerank
+            │
+            ▼
+       RAG Answer
+            │
+            ▼
+     Next.js Operator UI
+```
+
+## Engineering Focus
+
+- 製造現場の非構造・半構造データの知識資産化
+- Vector Search + Keyword Search + RRFによるHybrid Retrieval
+- ゴールドQ&Aを使ったHit@k・キーワードカバレッジ評価
+- RAG回答精度を測定可能にする評価パイプライン
+- FastAPI / Next.jsによる業務アプリケーション化
+- 技術継承・保全・トラブルシューティングへの生成AI適用
+
+## Portfolio Context
+
+This repository is a flagship of the **AI Knowledge Succession / Manufacturing RAG** track. It complements the Legacy Modernization projects by addressing not only source-code migration but also preservation of operational knowledge.
 
 ## 技術スタック
 
