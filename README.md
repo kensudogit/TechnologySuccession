@@ -4,6 +4,17 @@
 >
 > **Stack:** Python · FastAPI · LangChain · LlamaIndex · PostgreSQL · pgvector · Next.js · React · TypeScript · OpenAI
 
+
+## Portfolio Overview
+
+| | |
+|---|---|
+| **Problem** | Manufacturing know-how is often trapped in Excel, daily reports and PDFs and can be lost when experienced engineers leave. |
+| **Solution** | Converts operational documents into searchable knowledge and supports troubleshooting through evaluated RAG. |
+| **Architecture** | Ingestion/cleaning → embeddings + pgvector → vector/keyword hybrid retrieval → RRF/rerank → RAG → operator UI. |
+| **Differentiators** | Manufacturing-focused knowledge succession, hybrid retrieval and measurable Hit@k / keyword-coverage evaluation. |
+| **Stack** | Python · FastAPI · LangChain · LlamaIndex · PostgreSQL · pgvector · Next.js · React · TypeScript |
+
 ## Architecture
 
 ```text
